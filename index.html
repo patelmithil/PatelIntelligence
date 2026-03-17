@@ -1,25 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="gu">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NEXUS • Global Real-Time Intelligence Dashboard</title>
+<title>પટેલ • વૈશ્વિક રિયલ-ટાઇમ ઇન્ટેલિજન્સ ડેશબોર્ડ</title>
 
-<!-- External Dependencies -->
+<!-- Noto Sans Gujarati - Best cross-browser Gujarati font -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
-/* ============================================================
-   ROOT VARIABLES & RESET
-   ============================================================ */
 :root {
   --bg-primary: #060a13;
   --bg-secondary: #0c1220;
   --bg-surface: #111b2e;
-  --bg-glass: rgba(12,18,32,0.82);
+  --bg-glass: rgba(12,18,32,0.92);
   --bg-glass-light: rgba(20,30,55,0.65);
   --accent-cyan: #00d4ff;
   --accent-red: #ff2d55;
@@ -37,8 +37,9 @@
   --radius: 12px;
   --radius-sm: 8px;
   --radius-xs: 6px;
-  --font-sans: 'Inter', -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-gu: 'Noto Sans Gujarati', 'Shruti', 'Latha', 'Arial Unicode MS', sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
   --header-h: 56px;
   --filter-h: 48px;
   --stats-h: 52px;
@@ -47,11 +48,14 @@
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
 html, body {
-  height: 100%; overflow: hidden;
-  font-family: var(--font-sans);
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-gu);
   background: var(--bg-primary);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 ::-webkit-scrollbar { width:5px; }
@@ -59,45 +63,38 @@ html, body {
 ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:10px; }
 ::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.2); }
 
-/* ============================================================
-   BOOT / INITIALIZATION SCREEN
-   ============================================================ */
+/* ===== BOOT SCREEN ===== */
 #boot-screen {
   position:fixed; inset:0; z-index:10000;
   background: var(--bg-primary);
   display:flex; flex-direction:column;
   align-items:center; justify-content:center;
-  transition: opacity 0.8s, visibility 0.8s;
+  transition: opacity 0.8s ease, visibility 0.8s ease;
 }
 #boot-screen.hidden { opacity:0; visibility:hidden; pointer-events:none; }
-
 #boot-screen::before {
   content:''; position:absolute; inset:0;
-  background: repeating-linear-gradient(
-    0deg, transparent, transparent 2px,
-    rgba(0,212,255,0.015) 2px, rgba(0,212,255,0.015) 4px
-  );
-  pointer-events:none; animation: scanlines 8s linear infinite;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,212,255,0.015) 2px, rgba(0,212,255,0.015) 4px);
+  pointer-events:none;
 }
 
-@keyframes scanlines { 0%{transform:translateY(0)} 100%{transform:translateY(4px)} }
-
 .boot-logo {
-  font-family: var(--font-mono); font-size:42px; font-weight:700;
-  color: var(--accent-cyan); letter-spacing:12px;
+  font-family: var(--font-gu); font-size:48px; font-weight:700;
+  color: var(--accent-cyan); letter-spacing:8px;
   text-shadow: 0 0 40px rgba(0,212,255,0.5), 0 0 80px rgba(0,212,255,0.2);
   margin-bottom:40px; position:relative;
 }
 .boot-logo::after {
-  content:'INTELLIGENCE PLATFORM'; display:block;
-  font-size:11px; letter-spacing:8px; color:var(--text-muted);
+  content:'ઇન્ટેલિજન્સ પ્લેટફોર્મ'; display:block;
+  font-size:13px; letter-spacing:4px; color:var(--text-muted);
   text-shadow:none; margin-top:8px; text-align:center;
+  font-weight:400;
 }
 
 #boot-messages {
   font-family:var(--font-mono); font-size:12px;
-  color:var(--accent-green); width:480px; max-width:90vw;
-  min-height:180px;
+  color:var(--accent-green); width:520px; max-width:90vw;
+  min-height:180px; overflow-y:auto;
 }
 #boot-messages .msg {
   opacity:0; transform:translateY(5px);
@@ -109,24 +106,29 @@ html, body {
 #boot-messages .msg.success { color:var(--accent-cyan); }
 @keyframes msgIn { to{opacity:1;transform:translateY(0)} }
 
+/* Boot messages in Gujarati get Gujarati font */
+#boot-messages .msg-gu {
+  font-family: var(--font-gu);
+  font-size: 13px;
+}
+
 #boot-progress {
-  width:480px; max-width:90vw; height:2px;
+  width:520px; max-width:90vw; height:2px;
   background:rgba(255,255,255,0.05); margin-top:24px;
   border-radius:2px; overflow:hidden;
 }
 #boot-progress-bar {
-  height:100%; width:0; background: linear-gradient(90deg,var(--accent-cyan),var(--accent-green));
-  transition: width 0.3s; border-radius:2px;
+  height:100%; width:0;
+  background: linear-gradient(90deg,var(--accent-cyan),var(--accent-green));
+  transition: width 0.3s ease; border-radius:2px;
   box-shadow: 0 0 12px var(--accent-cyan);
 }
 
-/* ============================================================
-   MAIN APP CONTAINER
-   ============================================================ */
+/* ===== MAIN APP ===== */
 #app {
   display:none; height:100vh; width:100vw;
   flex-direction:column; overflow:hidden;
-  opacity:0; transition: opacity 0.6s;
+  opacity:0; transition: opacity 0.6s ease;
   background:
     radial-gradient(ellipse at 20% 50%, rgba(0,212,255,0.03) 0%, transparent 60%),
     radial-gradient(ellipse at 80% 20%, rgba(168,85,247,0.03) 0%, transparent 60%),
@@ -134,16 +136,15 @@ html, body {
 }
 #app.visible { opacity:1; }
 
-/* ============================================================
-   HEADER
-   ============================================================ */
+/* ===== HEADER ===== */
 header {
   height:var(--header-h); min-height:var(--header-h);
   display:flex; align-items:center; padding:0 16px; gap:12px;
   background: var(--bg-glass);
   border-bottom:1px solid var(--border-color);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  z-index:100; position:relative;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  z-index:100; position:relative; flex-shrink:0;
 }
 header::after {
   content:''; position:absolute; bottom:-1px; left:0; right:0; height:1px;
@@ -152,9 +153,10 @@ header::after {
 }
 
 .logo {
-  font-family:var(--font-mono); font-weight:700; font-size:18px;
-  color:var(--accent-cyan); letter-spacing:4px; margin-right:8px;
+  font-family:var(--font-gu); font-weight:700; font-size:20px;
+  color:var(--accent-cyan); letter-spacing:3px; margin-right:8px;
   display:flex; align-items:center; gap:10px; flex-shrink:0;
+  -webkit-user-select:none; user-select:none;
 }
 .logo-dot {
   width:8px; height:8px; background:var(--accent-cyan); border-radius:50%;
@@ -171,12 +173,11 @@ header::after {
 .threat-level {
   display:flex; align-items:center; gap:8px;
   padding:4px 12px; border-radius:var(--radius-xs);
-  font-size:11px; font-weight:600; letter-spacing:1px;
-  font-family:var(--font-mono); flex-shrink:0;
-}
-.threat-level.elevated {
-  background:rgba(255,180,0,0.1); color:var(--accent-amber);
+  font-size:11px; font-weight:600; letter-spacing:0.5px;
+  font-family:var(--font-gu); flex-shrink:0;
   border:1px solid rgba(255,180,0,0.2);
+  background:rgba(255,180,0,0.08);
+  color:var(--accent-amber);
 }
 .threat-level .tl-dot {
   width:6px;height:6px;border-radius:50%;
@@ -189,21 +190,27 @@ header::after {
 }
 .header-stat {
   display:flex; flex-direction:column; align-items:flex-end;
+}
+.header-stat-label {
+  font-size:9px; color:var(--text-muted); letter-spacing:0.5px;
+  font-family:var(--font-gu); font-weight:500;
+}
+.header-stat-value {
+  font-size:15px; font-weight:600; color:var(--text-primary);
   font-family:var(--font-mono);
 }
-.header-stat-label { font-size:9px; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; }
-.header-stat-value { font-size:15px; font-weight:600; color:var(--text-primary); }
 
 .clock {
   font-family:var(--font-mono); font-size:14px; font-weight:500;
   color:var(--accent-cyan); flex-shrink:0; letter-spacing:1px;
   display:flex; flex-direction:column; align-items:flex-end;
 }
-.clock-label { font-size:9px; color:var(--text-muted); letter-spacing:1px; }
+.clock-label {
+  font-size:9px; color:var(--text-muted); letter-spacing:1px;
+  font-family:var(--font-gu);
+}
 
-/* ============================================================
-   FILTER BAR
-   ============================================================ */
+/* ===== FILTER BAR ===== */
 .filter-bar {
   height:var(--filter-h); min-height:var(--filter-h);
   display:flex; align-items:center; padding:0 16px; gap:8px;
@@ -219,22 +226,17 @@ header::after {
   background:rgba(255,255,255,0.04);
   border:1px solid var(--border-color);
   color:var(--text-secondary); cursor:pointer;
-  transition:all 0.2s; white-space:nowrap;
-  font-family:var(--font-sans);
+  transition:all 0.2s ease; white-space:nowrap;
+  font-family:var(--font-gu);
+  -webkit-user-select:none; user-select:none;
 }
 .filter-btn:hover { background:rgba(255,255,255,0.08); color:var(--text-primary); }
-.filter-btn.active { border-color:var(--accent-cyan); color:var(--accent-cyan);
-  background:rgba(0,212,255,0.08); box-shadow:0 0 12px rgba(0,212,255,0.1); }
-.filter-btn.conflict.active { border-color:var(--accent-red); color:var(--accent-red);
-  background:rgba(255,45,85,0.08); }
-.filter-btn.weather.active { border-color:var(--accent-blue); color:var(--accent-blue);
-  background:rgba(59,130,246,0.08); }
-.filter-btn.economic.active { border-color:var(--accent-green); color:var(--accent-green);
-  background:rgba(0,230,118,0.08); }
-.filter-btn.breaking.active { border-color:var(--accent-amber); color:var(--accent-amber);
-  background:rgba(255,180,0,0.08); }
-.filter-btn.cyber.active { border-color:var(--accent-purple); color:var(--accent-purple);
-  background:rgba(168,85,247,0.08); }
+.filter-btn.active { border-color:var(--accent-cyan); color:var(--accent-cyan); background:rgba(0,212,255,0.08); box-shadow:0 0 12px rgba(0,212,255,0.1); }
+.filter-btn.active[data-filter="conflict"] { border-color:var(--accent-red); color:var(--accent-red); background:rgba(255,45,85,0.08); box-shadow:0 0 12px rgba(255,45,85,0.1); }
+.filter-btn.active[data-filter="weather"] { border-color:var(--accent-blue); color:var(--accent-blue); background:rgba(59,130,246,0.08); box-shadow:0 0 12px rgba(59,130,246,0.1); }
+.filter-btn.active[data-filter="economic"] { border-color:var(--accent-green); color:var(--accent-green); background:rgba(0,230,118,0.08); box-shadow:0 0 12px rgba(0,230,118,0.1); }
+.filter-btn.active[data-filter="breaking"] { border-color:var(--accent-amber); color:var(--accent-amber); background:rgba(255,180,0,0.08); box-shadow:0 0 12px rgba(255,180,0,0.1); }
+.filter-btn.active[data-filter="cyber"] { border-color:var(--accent-purple); color:var(--accent-purple); background:rgba(168,85,247,0.08); box-shadow:0 0 12px rgba(168,85,247,0.1); }
 
 .filter-btn .count {
   font-size:10px; padding:1px 6px; border-radius:10px;
@@ -246,14 +248,14 @@ header::after {
   padding:6px 14px; border-radius:20px;
   background:rgba(255,255,255,0.04);
   border:1px solid var(--border-color);
-  min-width:200px; transition:all 0.3s;
+  min-width:200px; transition:all 0.3s ease;
 }
 .search-box:focus-within { border-color:var(--accent-cyan); background:rgba(0,212,255,0.04); }
-.search-box i { color:var(--text-muted); font-size:12px; }
+.search-box i { color:var(--text-muted); font-size:12px; flex-shrink:0; }
 .search-box input {
   border:none; background:none; outline:none;
   color:var(--text-primary); font-size:12px;
-  font-family:var(--font-sans); width:100%;
+  font-family:var(--font-gu); width:100%;
 }
 .search-box input::placeholder { color:var(--text-muted); }
 
@@ -262,53 +264,47 @@ header::after {
   background:rgba(255,255,255,0.04);
   border:1px solid var(--border-color);
   color:var(--text-secondary); cursor:pointer;
-  font-family:var(--font-sans); outline:none;
-  appearance:none; -webkit-appearance:none;
+  font-family:var(--font-gu); outline:none;
+  -webkit-appearance:none; -moz-appearance:none; appearance:none;
 }
-.severity-select option { background:var(--bg-surface); }
+.severity-select option { background:var(--bg-surface); color:var(--text-primary); }
 
-/* ============================================================
-   MAIN CONTENT LAYOUT
-   ============================================================ */
+/* ===== MAIN CONTENT ===== */
 .main-content {
   flex:1; display:flex; overflow:hidden; position:relative;
+  min-height:0;
 }
 
-/* ============================================================
-   MAP
-   ============================================================ */
-.map-wrap {
-  flex:1; position:relative; min-width:0;
-}
-#map {
-  width:100%; height:100%;
-  background:var(--bg-primary);
-}
-/* Override leaflet for dark theme */
+/* ===== MAP ===== */
+.map-wrap { flex:1; position:relative; min-width:0; }
+#map { width:100%; height:100%; background:var(--bg-primary); }
 .leaflet-container { background:var(--bg-primary) !important; }
-.leaflet-control-zoom { border:none !important; }
+.leaflet-control-zoom { border:none !important; margin-top:50px !important; }
 .leaflet-control-zoom a {
   background:var(--bg-glass) !important; color:var(--text-primary) !important;
   border:1px solid var(--border-color) !important;
+  -webkit-backdrop-filter:blur(12px) !important;
   backdrop-filter:blur(12px) !important;
   width:32px !important; height:32px !important; line-height:32px !important;
   font-size:14px !important;
 }
 .leaflet-control-zoom a:hover { background:var(--bg-surface) !important; }
 .leaflet-control-attribution { display:none !important; }
+.leaflet-popup { display:none !important; }
 
-/* Custom map markers */
-.event-marker {
-  position:relative; cursor:pointer;
-  transition: transform 0.2s;
-}
+/* Markers */
+.event-marker { position:relative; cursor:pointer; transition: transform 0.2s ease; }
 .event-marker:hover { transform:scale(1.3); z-index:9999 !important; }
 
 .marker-dot {
-  width:14px; height:14px; border-radius:50%;
-  border:2px solid; position:relative;
-  box-shadow: 0 0 8px;
+  border-radius:50%; border:2px solid; position:relative;
 }
+.marker-dot.sz-5 { width:20px; height:20px; }
+.marker-dot.sz-4 { width:17px; height:17px; }
+.marker-dot.sz-3 { width:14px; height:14px; }
+.marker-dot.sz-2 { width:12px; height:12px; }
+.marker-dot.sz-1 { width:10px; height:10px; }
+
 .marker-dot::after {
   content:''; position:absolute;
   top:-6px;left:-6px;right:-6px;bottom:-6px;
@@ -333,54 +329,37 @@ header::after {
 .marker-dot.health { border-color:var(--accent-orange); background:rgba(255,107,53,0.6); box-shadow:0 0 8px rgba(255,107,53,0.5); }
 .marker-dot.health::after { border-color:var(--accent-orange); }
 
-.marker-dot.severity-5 { width:20px; height:20px; }
-.marker-dot.severity-4 { width:17px; height:17px; }
-
-.marker-tooltip {
-  position:absolute; bottom:calc(100% + 12px); left:50%;
-  transform:translateX(-50%); padding:8px 12px;
-  background:var(--bg-glass); backdrop-filter:blur(16px);
-  border:1px solid var(--border-color); border-radius:var(--radius-xs);
-  font-size:11px; white-space:nowrap; pointer-events:none;
-  opacity:0; transition: opacity 0.2s;
-  box-shadow:var(--shadow-lg);
-  max-width:240px; white-space:normal;
-}
-.event-marker:hover .marker-tooltip { opacity:1; }
-.marker-tooltip-title { font-weight:600; margin-bottom:2px; font-size:12px; }
-.marker-tooltip-loc { color:var(--text-muted); font-size:10px; }
-
-/* Map overlay info */
 .map-overlay-info {
-  position:absolute; top:12px; left:60px;
-  z-index:1000; display:flex; gap:8px;
+  position:absolute; top:12px; left:12px;
+  z-index:500; display:flex; gap:8px; pointer-events:none;
 }
 .map-info-badge {
   padding:5px 12px; border-radius:20px;
-  background:var(--bg-glass); backdrop-filter:blur(12px);
+  background:var(--bg-glass);
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
   border:1px solid var(--border-color);
-  font-size:11px; font-family:var(--font-mono);
+  font-size:11px; font-family:var(--font-gu);
   color:var(--text-secondary); display:flex; align-items:center; gap:6px;
+  pointer-events:auto;
 }
 .map-info-badge i { font-size:10px; }
 
-/* ============================================================
-   LIVE FEED PANEL
-   ============================================================ */
+/* ===== FEED PANEL ===== */
 .feed-panel {
-  width:380px; min-width:380px;
+  width:400px; min-width:400px;
   display:flex; flex-direction:column;
   background:var(--bg-glass);
   border-left:1px solid var(--border-color);
-  backdrop-filter:blur(20px);
-  position:relative; z-index:50;
+  -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px);
+  position:relative; z-index:50; flex-shrink:0;
 }
 .feed-header {
   padding:12px 16px; display:flex; align-items:center; gap:10px;
   border-bottom:1px solid var(--border-color); flex-shrink:0;
 }
 .feed-title {
-  font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px;
+  font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px;
+  font-family:var(--font-gu);
 }
 .feed-title .live-dot {
   width:6px;height:6px;border-radius:50%;
@@ -389,24 +368,21 @@ header::after {
 }
 .feed-count {
   margin-left:auto; font-size:11px; color:var(--text-muted);
-  font-family:var(--font-mono);
+  font-family:var(--font-gu);
 }
-.feed-toggle {
+.feed-close-btn {
   display:none; background:none; border:none; color:var(--text-secondary);
   cursor:pointer; font-size:16px; padding:4px;
 }
 
-.feed-list {
-  flex:1; overflow-y:auto; padding:8px;
-}
+.feed-list { flex:1; overflow-y:auto; padding:8px; min-height:0; }
 
-/* Feed items */
 .feed-item {
   padding:12px; border-radius:var(--radius-sm);
   background:rgba(255,255,255,0.02);
   border:1px solid transparent;
   margin-bottom:6px; cursor:pointer;
-  transition:all 0.25s; position:relative;
+  transition:all 0.25s ease; position:relative;
   animation: feedSlideIn 0.4s ease-out;
 }
 @keyframes feedSlideIn {
@@ -422,9 +398,9 @@ header::after {
 
 .feed-item-header { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
 .feed-item-cat {
-  font-size:9px; font-weight:700; letter-spacing:1px;
-  padding:2px 8px; border-radius:10px; text-transform:uppercase;
-  font-family:var(--font-mono);
+  font-size:9px; font-weight:700; letter-spacing:0.5px;
+  padding:2px 8px; border-radius:10px;
+  font-family:var(--font-gu);
 }
 .feed-item-cat.conflict { background:rgba(255,45,85,0.15); color:var(--accent-red); }
 .feed-item-cat.breaking { background:rgba(255,180,0,0.15); color:var(--accent-amber); }
@@ -440,10 +416,14 @@ header::after {
 .feed-item-severity.sev-5 { color:var(--accent-red); }
 .feed-item-severity.sev-4 { color:var(--accent-amber); }
 
-.feed-item-title { font-size:13px; font-weight:600; line-height:1.4; margin-bottom:6px; }
+.feed-item-title {
+  font-size:13px; font-weight:600; line-height:1.6; margin-bottom:6px;
+  font-family:var(--font-gu);
+}
 .feed-item-meta {
   display:flex; align-items:center; gap:10px;
-  font-size:10px; color:var(--text-muted); font-family:var(--font-mono);
+  font-size:10px; color:var(--text-muted); font-family:var(--font-gu);
+  flex-wrap:wrap;
 }
 .feed-item-meta i { font-size:9px; }
 
@@ -451,31 +431,28 @@ header::after {
   position:absolute; top:12px; right:12px;
   background:none; border:none; color:var(--text-muted);
   cursor:pointer; font-size:12px; opacity:0;
-  transition:all 0.2s;
+  transition:all 0.2s ease;
 }
 .feed-item:hover .feed-item-bookmark { opacity:1; }
 .feed-item-bookmark.active { opacity:1; color:var(--accent-amber); }
 
-/* ============================================================
-   STATS BAR
-   ============================================================ */
+/* ===== STATS BAR ===== */
 .stats-bar {
   height:var(--stats-h); min-height:var(--stats-h);
-  display:flex; align-items:center; padding:0 16px; gap:24px;
+  display:flex; align-items:center; padding:0 16px; gap:20px;
   background:var(--bg-glass);
   border-top:1px solid var(--border-color);
-  backdrop-filter:blur(20px); flex-shrink:0;
-  overflow-x:auto;
+  -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px);
+  flex-shrink:0; overflow-x:auto;
 }
 .stat-item {
   display:flex; align-items:center; gap:8px;
-  font-family:var(--font-mono); font-size:11px;
-  color:var(--text-secondary); white-space:nowrap;
+  font-size:11px; color:var(--text-secondary); white-space:nowrap; flex-shrink:0;
 }
 .stat-item .stat-icon {
   width:28px; height:28px; border-radius:var(--radius-xs);
   display:flex; align-items:center; justify-content:center;
-  font-size:12px;
+  font-size:12px; flex-shrink:0;
 }
 .stat-item .stat-icon.red { background:rgba(255,45,85,0.1); color:var(--accent-red); }
 .stat-item .stat-icon.amber { background:rgba(255,180,0,0.1); color:var(--accent-amber); }
@@ -484,75 +461,78 @@ header::after {
 .stat-item .stat-icon.purple { background:rgba(168,85,247,0.1); color:var(--accent-purple); }
 .stat-item .stat-icon.cyan { background:rgba(0,212,255,0.1); color:var(--accent-cyan); }
 
-.stat-item .stat-val {
-  font-size:16px; font-weight:700; color:var(--text-primary);
-}
-.stat-item .stat-label { font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+.stat-item .stat-val { font-size:16px; font-weight:700; color:var(--text-primary); font-family:var(--font-mono); }
+.stat-item .stat-label { font-size:9px; color:var(--text-muted); font-family:var(--font-gu); font-weight:500; }
 .stat-item .stat-info { display:flex; flex-direction:column; }
 
 .stat-sparkline { width:60px; height:24px; flex-shrink:0; }
-
 .stats-divider { width:1px; height:28px; background:var(--border-color); flex-shrink:0; }
 
 .stat-bar-mini { display:flex; gap:2px; align-items:flex-end; height:20px; }
 .stat-bar-mini span {
   width:3px; background:var(--accent-cyan); border-radius:1px;
-  opacity:0.6; transition: height 0.5s;
+  opacity:0.6; transition: height 0.5s ease;
 }
 
-/* ============================================================
-   DETAIL / EVENT PANEL (slide-in)
-   ============================================================ */
+/* ===== DETAIL PANEL ===== */
 .detail-overlay {
-  position:fixed; inset:0; z-index:200;
-  background:rgba(0,0,0,0.5);
+  position:fixed; inset:0; z-index:9000;
+  background:rgba(0,0,0,0.6);
   opacity:0; visibility:hidden;
-  transition: opacity 0.3s, visibility 0.3s;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
 }
 .detail-overlay.open { opacity:1; visibility:visible; }
 
 .detail-panel {
-  position:fixed; top:0; right:-520px; bottom:0; width:500px;
-  max-width:100vw; z-index:201;
+  position:fixed; top:0; right:0; bottom:0;
+  width:540px; max-width:100vw;
+  z-index:9001;
   background:var(--bg-secondary);
   border-left:1px solid var(--border-color);
-  box-shadow: -20px 0 60px rgba(0,0,0,0.5);
-  transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
-  display:flex; flex-direction:column;
-  overflow:hidden;
+  box-shadow: -20px 0 60px rgba(0,0,0,0.7);
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+  display:flex; flex-direction:column; overflow:hidden;
 }
-.detail-panel.open { right:0; }
+.detail-panel.open { transform: translateX(0); }
 
 .detail-panel-header {
   padding:16px 20px; display:flex; align-items:center; gap:12px;
   border-bottom:1px solid var(--border-color);
-  flex-shrink:0;
+  flex-shrink:0; background:var(--bg-secondary);
 }
 .detail-close {
   background:rgba(255,255,255,0.05); border:1px solid var(--border-color);
-  color:var(--text-secondary); width:32px; height:32px;
+  color:var(--text-secondary); width:36px; height:36px;
   border-radius:var(--radius-xs); cursor:pointer; font-size:14px;
   display:flex; align-items:center; justify-content:center;
-  transition:all 0.2s;
+  transition:all 0.2s ease; flex-shrink:0;
 }
 .detail-close:hover { background:rgba(255,255,255,0.1); color:var(--text-primary); }
+.detail-panel-title {
+  font-size:14px; font-weight:600; font-family:var(--font-gu);
+}
 
-.detail-panel-title { font-size:14px; font-weight:600; }
-
-.detail-body { flex:1; overflow-y:auto; padding:20px; }
+.detail-body { flex:1; overflow-y:auto; padding:20px; min-height:0; }
 
 .detail-section { margin-bottom:24px; }
 .detail-section-title {
-  font-size:10px; font-weight:700; letter-spacing:1.5px;
-  color:var(--text-muted); text-transform:uppercase;
+  font-size:11px; font-weight:700; letter-spacing:0.5px;
+  color:var(--text-muted);
   margin-bottom:10px; display:flex; align-items:center; gap:8px;
+  font-family:var(--font-gu);
 }
 .detail-section-title i { font-size:10px; }
 
-.detail-event-title { font-size:20px; font-weight:700; line-height:1.3; margin-bottom:8px; }
+.detail-event-title {
+  font-size:20px; font-weight:700; line-height:1.5; margin-bottom:8px;
+  font-family:var(--font-gu);
+}
 .detail-event-location {
   font-size:13px; color:var(--text-secondary);
   display:flex; align-items:center; gap:6px; margin-bottom:16px;
+  font-family:var(--font-gu);
 }
 .detail-event-location i { color:var(--accent-cyan); }
 
@@ -565,16 +545,17 @@ header::after {
   border:1px solid var(--border-color);
 }
 .detail-meta-card label {
-  font-size:9px; color:var(--text-muted); text-transform:uppercase;
-  letter-spacing:1px; font-family:var(--font-mono);
+  font-size:9px; color:var(--text-muted);
+  letter-spacing:0.5px; font-family:var(--font-gu); display:block;
+  font-weight:500;
 }
 .detail-meta-card .val {
   font-size:14px; font-weight:600; margin-top:2px;
 }
 
 .detail-description {
-  font-size:13px; line-height:1.8; color:var(--text-secondary);
-  margin-bottom:16px;
+  font-size:14px; line-height:1.9; color:var(--text-secondary);
+  margin-bottom:16px; font-family:var(--font-gu);
 }
 
 .ai-summary-box {
@@ -589,11 +570,14 @@ header::after {
 }
 .ai-summary-header {
   display:flex; align-items:center; gap:8px;
-  font-size:11px; font-weight:600; color:var(--accent-cyan);
-  margin-bottom:10px;
+  font-size:12px; font-weight:600; color:var(--accent-cyan);
+  margin-bottom:10px; font-family:var(--font-gu);
 }
 .ai-summary-header i { font-size:14px; }
-.ai-summary-text { font-size:13px; line-height:1.7; color:var(--text-secondary); }
+.ai-summary-text {
+  font-size:13px; line-height:1.8; color:var(--text-secondary);
+  min-height:40px; font-family:var(--font-gu);
+}
 .ai-cursor {
   display:inline-block; width:2px; height:14px;
   background:var(--accent-cyan); margin-left:2px;
@@ -607,15 +591,24 @@ header::after {
   padding:10px 12px; border-radius:var(--radius-xs);
   background:rgba(255,255,255,0.02);
   border:1px solid var(--border-color);
-  cursor:pointer; transition:all 0.2s;
-  font-size:12px;
+  cursor:pointer; transition:all 0.2s ease; font-size:12px;
 }
 .related-item:hover { background:rgba(255,255,255,0.05); }
 .related-item .ri-dot { width:6px;height:6px;border-radius:50%;flex-shrink:0; }
+.related-item-text { flex:1; min-width:0; }
+.related-item-title {
+  font-weight:500; margin-bottom:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-family:var(--font-gu);
+}
+.related-item-sub {
+  font-size:10px; color:var(--text-muted); font-family:var(--font-gu);
+}
 
 .detail-actions {
   display:flex; gap:8px; padding:16px 20px;
   border-top:1px solid var(--border-color); flex-shrink:0;
+  background:var(--bg-secondary);
 }
 .detail-actions button {
   flex:1; padding:10px; border-radius:var(--radius-xs);
@@ -623,35 +616,35 @@ header::after {
   border:1px solid var(--border-color);
   background:rgba(255,255,255,0.04);
   color:var(--text-secondary);
-  font-family:var(--font-sans);
+  font-family:var(--font-gu);
   display:flex; align-items:center; justify-content:center; gap:6px;
-  transition:all 0.2s;
+  transition:all 0.2s ease;
 }
 .detail-actions button:hover { background:rgba(255,255,255,0.08); color:var(--text-primary); }
 .detail-actions button.primary {
   background:rgba(0,212,255,0.1); color:var(--accent-cyan);
   border-color:rgba(0,212,255,0.2);
 }
+.detail-actions button.primary:hover { background:rgba(0,212,255,0.2); }
 
-/* ============================================================
-   NOTIFICATION TOASTS
-   ============================================================ */
+/* ===== TOASTS ===== */
 .toast-container {
-  position:fixed; top:70px; right:16px; z-index:300;
+  position:fixed; top:70px; right:16px; z-index:10000;
   display:flex; flex-direction:column; gap:8px;
-  max-width:360px; width:100%;
+  max-width:380px; width:100%; pointer-events:none;
 }
 .toast {
   padding:12px 16px; border-radius:var(--radius-sm);
-  background:var(--bg-glass); backdrop-filter:blur(20px);
+  background:var(--bg-glass);
+  -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px);
   border:1px solid var(--border-color);
   box-shadow:var(--shadow-lg);
   display:flex; align-items:flex-start; gap:10px;
   animation: toastIn 0.4s cubic-bezier(0.4,0,0.2,1);
-  cursor:pointer; transition:all 0.2s;
+  pointer-events:auto; cursor:pointer; transition:transform 0.2s ease;
 }
 .toast:hover { transform:translateX(-4px); }
-.toast.removing { animation: toastOut 0.3s forwards; }
+.toast.removing { animation: toastOut 0.3s ease forwards; }
 @keyframes toastIn { from{opacity:0;transform:translateX(100%)} to{opacity:1;transform:translateX(0)} }
 @keyframes toastOut { to{opacity:0;transform:translateX(100%)} }
 
@@ -665,187 +658,177 @@ header::after {
 .toast-icon.weather { background:rgba(59,130,246,0.15); color:var(--accent-blue); }
 .toast-icon.economic { background:rgba(0,230,118,0.15); color:var(--accent-green); }
 .toast-icon.cyber { background:rgba(168,85,247,0.15); color:var(--accent-purple); }
+.toast-icon.health { background:rgba(255,107,53,0.15); color:var(--accent-orange); }
 
 .toast-content { flex:1; min-width:0; }
-.toast-title { font-size:12px; font-weight:600; margin-bottom:2px; }
-.toast-msg { font-size:11px; color:var(--text-secondary); line-height:1.4; }
+.toast-title { font-size:12px; font-weight:600; margin-bottom:2px; font-family:var(--font-gu); }
+.toast-msg {
+  font-size:11px; color:var(--text-secondary); line-height:1.5;
+  overflow:hidden; text-overflow:ellipsis; display:-webkit-box;
+  -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  font-family:var(--font-gu);
+}
 .toast-time { font-size:9px; color:var(--text-muted); font-family:var(--font-mono); margin-top:4px; }
-.toast-close {
+.toast-close-btn {
   background:none; border:none; color:var(--text-muted);
   cursor:pointer; font-size:12px; padding:2px;
-  transition: color 0.2s;
+  transition: color 0.2s ease; flex-shrink:0;
 }
-.toast-close:hover { color:var(--text-primary); }
+.toast-close-btn:hover { color:var(--text-primary); }
 
-/* ============================================================
-   MOBILE FEED TOGGLE
-   ============================================================ */
+/* ===== MOBILE ===== */
 .mobile-feed-btn {
   display:none; position:fixed; bottom:70px; right:16px;
   z-index:150; width:48px; height:48px; border-radius:50%;
   background:var(--accent-cyan); color:var(--bg-primary);
   border:none; font-size:18px; cursor:pointer;
   box-shadow:0 4px 20px rgba(0,212,255,0.4);
-  transition:all 0.2s;
+  transition:all 0.2s ease; align-items:center; justify-content:center;
 }
 .mobile-feed-btn:hover { transform:scale(1.1); }
 
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
 @media (max-width:900px) {
   .feed-panel {
-    position:fixed; top:0; right:-100%; bottom:0; width:100%;
-    max-width:380px; z-index:180;
-    transition: right 0.3s cubic-bezier(0.4,0,0.2,1);
+    position:fixed; top:0; right:0; bottom:0; width:100%;
+    max-width:400px; z-index:8000;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    border-left:1px solid var(--border-color);
   }
-  .feed-panel.mobile-open { right:0; }
-  .feed-toggle { display:block !important; }
-  .mobile-feed-btn { display:flex; align-items:center; justify-content:center; }
+  .feed-panel.mobile-open { transform: translateX(0); }
+  .feed-close-btn { display:block !important; }
+  .mobile-feed-btn { display:flex; }
   .header-stats { display:none; }
-  .header-divider:nth-child(4) { display:none; }
+  .header-divider.hd-stats { display:none; }
   .search-box { min-width:120px; }
-  .map-overlay-info { left:12px; top:12px; }
-  .detail-panel { width:100%; }
+  .detail-panel { width:100%; max-width:100vw; }
 }
 
 @media (max-width:600px) {
   .filter-bar { padding:0 8px; gap:4px; }
   .filter-btn { padding:5px 10px; font-size:11px; }
-  .filter-btn span { display:none; }
-  .search-box { min-width:100px; }
-  .stats-bar { padding:0 8px; gap:12px; }
+  .filter-btn .filter-label { display:none; }
+  .search-box { min-width:80px; }
+  .stats-bar { padding:0 8px; gap:10px; }
   .stat-sparkline { display:none; }
-  header { padding:0 10px; }
-  .logo { font-size:14px; letter-spacing:2px; }
+  header { padding:0 10px; gap:8px; }
+  .logo { font-size:16px; letter-spacing:2px; }
   .clock { font-size:12px; }
+  .threat-level { font-size:9px; padding:3px 8px; }
 }
 </style>
 </head>
 <body>
 
-<!-- ========================================================
-     BOOT / INITIALIZATION SCREEN
-     ======================================================== -->
+<!-- BOOT SCREEN -->
 <div id="boot-screen">
-  <div class="boot-logo">NEXUS</div>
+  <div class="boot-logo">પટેલ</div>
   <div id="boot-messages"></div>
   <div id="boot-progress"><div id="boot-progress-bar"></div></div>
 </div>
 
-<!-- ========================================================
-     MAIN APPLICATION
-     ======================================================== -->
+<!-- MAIN APP -->
 <div id="app">
-
-  <!-- HEADER -->
   <header>
     <div class="logo">
       <div class="logo-dot"></div>
-      NEXUS
+      પટેલ
     </div>
     <div class="header-divider"></div>
-    <div class="threat-level elevated" id="threat-level">
+    <div class="threat-level" id="threat-level">
       <div class="tl-dot"></div>
-      THREAT: <span id="threat-text">ELEVATED</span>
+      જોખમ: <span id="threat-text">ઉચ્ચ</span>
     </div>
-    <div class="header-divider"></div>
+    <div class="header-divider hd-stats"></div>
     <div class="header-stats" id="header-stats">
       <div class="header-stat">
-        <span class="header-stat-label">ACTIVE EVENTS</span>
+        <span class="header-stat-label">સક્રિય ઘટનાઓ</span>
         <span class="header-stat-value" id="stat-total">0</span>
       </div>
       <div class="header-stat">
-        <span class="header-stat-label">COUNTRIES</span>
+        <span class="header-stat-label">દેશો</span>
         <span class="header-stat-value" id="stat-countries">0</span>
       </div>
       <div class="header-stat">
-        <span class="header-stat-label">CRITICAL</span>
+        <span class="header-stat-label">ગંભીર</span>
         <span class="header-stat-value" id="stat-critical" style="color:var(--accent-red)">0</span>
       </div>
     </div>
     <div class="header-divider"></div>
     <div class="clock" id="clock">
       <span id="clock-time">00:00:00</span>
-      <span class="clock-label">UTC</span>
+      <span class="clock-label">યુટીસી</span>
     </div>
   </header>
 
-  <!-- FILTER BAR -->
   <div class="filter-bar">
-    <button class="filter-btn active" data-filter="all" onclick="toggleFilter('all')">
-      <i class="fas fa-globe"></i> <span>All Events</span> <span class="count" id="count-all">0</span>
+    <button class="filter-btn active" data-filter="all" onclick="handleFilter(this,'all')">
+      <i class="fas fa-globe"></i> <span class="filter-label">બધી ઘટનાઓ</span> <span class="count" id="count-all">0</span>
     </button>
-    <button class="filter-btn conflict" data-filter="conflict" onclick="toggleFilter('conflict')">
-      <i class="fas fa-crosshairs"></i> <span>Conflicts</span> <span class="count" id="count-conflict">0</span>
+    <button class="filter-btn" data-filter="conflict" onclick="handleFilter(this,'conflict')">
+      <i class="fas fa-crosshairs"></i> <span class="filter-label">સંઘર્ષ</span> <span class="count" id="count-conflict">0</span>
     </button>
-    <button class="filter-btn breaking" data-filter="breaking" onclick="toggleFilter('breaking')">
-      <i class="fas fa-bolt"></i> <span>Breaking</span> <span class="count" id="count-breaking">0</span>
+    <button class="filter-btn" data-filter="breaking" onclick="handleFilter(this,'breaking')">
+      <i class="fas fa-bolt"></i> <span class="filter-label">તાજા સમાચાર</span> <span class="count" id="count-breaking">0</span>
     </button>
-    <button class="filter-btn weather" data-filter="weather" onclick="toggleFilter('weather')">
-      <i class="fas fa-cloud-bolt"></i> <span>Weather</span> <span class="count" id="count-weather">0</span>
+    <button class="filter-btn" data-filter="weather" onclick="handleFilter(this,'weather')">
+      <i class="fas fa-cloud-bolt"></i> <span class="filter-label">હવામાન</span> <span class="count" id="count-weather">0</span>
     </button>
-    <button class="filter-btn economic" data-filter="economic" onclick="toggleFilter('economic')">
-      <i class="fas fa-chart-line"></i> <span>Economic</span> <span class="count" id="count-economic">0</span>
+    <button class="filter-btn" data-filter="economic" onclick="handleFilter(this,'economic')">
+      <i class="fas fa-chart-line"></i> <span class="filter-label">આર્થિક</span> <span class="count" id="count-economic">0</span>
     </button>
-    <button class="filter-btn cyber" data-filter="cyber" onclick="toggleFilter('cyber')">
-      <i class="fas fa-shield-halved"></i> <span>Cyber</span> <span class="count" id="count-cyber">0</span>
+    <button class="filter-btn" data-filter="cyber" onclick="handleFilter(this,'cyber')">
+      <i class="fas fa-shield-halved"></i> <span class="filter-label">સાયબર</span> <span class="count" id="count-cyber">0</span>
     </button>
     <select class="severity-select" id="severity-filter" onchange="applyFilters()">
-      <option value="0">All Severity</option>
-      <option value="5">⬤ Critical (5)</option>
-      <option value="4">⬤ High (4+)</option>
-      <option value="3">⬤ Elevated (3+)</option>
-      <option value="2">⬤ Moderate (2+)</option>
+      <option value="0">બધી તીવ્રતા</option>
+      <option value="5">ગંભીર (૫)</option>
+      <option value="4">ઉચ્ચ (૪+)</option>
+      <option value="3">ઊંચું (૩+)</option>
+      <option value="2">મધ્યમ (૨+)</option>
     </select>
     <div class="search-box">
       <i class="fas fa-search"></i>
-      <input type="text" id="search-input" placeholder="Search events..." oninput="applyFilters()">
+      <input type="text" id="search-input" placeholder="ઘટનાઓ શોધો..." oninput="applyFilters()">
     </div>
   </div>
 
-  <!-- MAIN CONTENT: MAP + FEED -->
   <div class="main-content">
-    <!-- MAP -->
     <div class="map-wrap">
       <div id="map"></div>
       <div class="map-overlay-info">
         <div class="map-info-badge">
           <i class="fas fa-satellite-dish" style="color:var(--accent-green)"></i>
-          <span id="data-streams">6 streams active</span>
+          <span id="data-streams">૬ સ્ટ્રીમ સક્રિય</span>
         </div>
         <div class="map-info-badge">
           <i class="fas fa-map-marker-alt" style="color:var(--accent-cyan)"></i>
-          <span id="marker-count">0 markers</span>
+          <span id="marker-count">૦ માર્કર</span>
         </div>
       </div>
     </div>
 
-    <!-- LIVE FEED -->
     <aside class="feed-panel" id="feed-panel">
       <div class="feed-header">
         <div class="feed-title">
           <div class="live-dot"></div>
-          LIVE FEED
+          લાઈવ ફીડ
         </div>
-        <div class="feed-count" id="feed-count">0 events</div>
-        <button class="feed-toggle" onclick="toggleMobileFeed()">
+        <div class="feed-count" id="feed-count">૦ ઘટનાઓ</div>
+        <button class="feed-close-btn" onclick="closeMobileFeed()">
           <i class="fas fa-times"></i>
         </button>
       </div>
-      <div class="feed-list" id="feed-list">
-        <!-- Feed items injected by JS -->
-      </div>
+      <div class="feed-list" id="feed-list"></div>
     </aside>
   </div>
 
-  <!-- STATS BAR -->
   <div class="stats-bar">
     <div class="stat-item">
       <div class="stat-icon red"><i class="fas fa-crosshairs"></i></div>
       <div class="stat-info">
         <div class="stat-val" id="sbar-conflict">0</div>
-        <div class="stat-label">Conflicts</div>
+        <div class="stat-label">સંઘર્ષ</div>
       </div>
       <canvas class="stat-sparkline" id="spark-conflict" width="60" height="24"></canvas>
     </div>
@@ -854,7 +837,7 @@ header::after {
       <div class="stat-icon amber"><i class="fas fa-bolt"></i></div>
       <div class="stat-info">
         <div class="stat-val" id="sbar-breaking">0</div>
-        <div class="stat-label">Breaking</div>
+        <div class="stat-label">તાજા</div>
       </div>
       <canvas class="stat-sparkline" id="spark-breaking" width="60" height="24"></canvas>
     </div>
@@ -863,7 +846,7 @@ header::after {
       <div class="stat-icon blue"><i class="fas fa-cloud-bolt"></i></div>
       <div class="stat-info">
         <div class="stat-val" id="sbar-weather">0</div>
-        <div class="stat-label">Weather</div>
+        <div class="stat-label">હવામાન</div>
       </div>
       <canvas class="stat-sparkline" id="spark-weather" width="60" height="24"></canvas>
     </div>
@@ -872,7 +855,7 @@ header::after {
       <div class="stat-icon green"><i class="fas fa-chart-line"></i></div>
       <div class="stat-info">
         <div class="stat-val" id="sbar-economic">0</div>
-        <div class="stat-label">Economic</div>
+        <div class="stat-label">આર્થિક</div>
       </div>
       <canvas class="stat-sparkline" id="spark-economic" width="60" height="24"></canvas>
     </div>
@@ -881,7 +864,7 @@ header::after {
       <div class="stat-icon purple"><i class="fas fa-shield-halved"></i></div>
       <div class="stat-info">
         <div class="stat-val" id="sbar-cyber">0</div>
-        <div class="stat-label">Cyber</div>
+        <div class="stat-label">સાયબર</div>
       </div>
       <canvas class="stat-sparkline" id="spark-cyber" width="60" height="24"></canvas>
     </div>
@@ -890,225 +873,271 @@ header::after {
       <div class="stat-icon cyan"><i class="fas fa-satellite"></i></div>
       <div class="stat-info">
         <div class="stat-val" id="sbar-uptime">99.7%</div>
-        <div class="stat-label">Uptime</div>
+        <div class="stat-label">અપટાઇમ</div>
       </div>
       <div class="stat-bar-mini" id="activity-bars"></div>
     </div>
   </div>
 
-  <!-- Mobile feed button -->
-  <button class="mobile-feed-btn" onclick="toggleMobileFeed()">
+  <button class="mobile-feed-btn" onclick="openMobileFeed()">
     <i class="fas fa-newspaper"></i>
   </button>
 </div>
 
-<!-- DETAIL PANEL OVERLAY -->
-<div class="detail-overlay" id="detail-overlay" onclick="closeDetail()"></div>
+<!-- DETAIL OVERLAY + PANEL -->
+<div class="detail-overlay" id="detail-overlay"></div>
 <div class="detail-panel" id="detail-panel">
   <div class="detail-panel-header">
     <button class="detail-close" onclick="closeDetail()"><i class="fas fa-times"></i></button>
-    <div class="detail-panel-title">Event Intelligence Report</div>
+    <div class="detail-panel-title">ઘટના ગુપ્તચર અહેવાલ</div>
   </div>
-  <div class="detail-body" id="detail-body">
-    <!-- Injected by JS -->
-  </div>
+  <div class="detail-body" id="detail-body"></div>
   <div class="detail-actions">
-    <button onclick="bookmarkCurrent()"><i class="far fa-bookmark"></i> Bookmark</button>
-    <button onclick="shareCurrent()"><i class="fas fa-share-nodes"></i> Share</button>
-    <button class="primary" onclick="closeDetail()"><i class="fas fa-check"></i> Acknowledge</button>
+    <button onclick="bookmarkCurrent()"><i class="far fa-bookmark"></i> બુકમાર્ક</button>
+    <button onclick="shareCurrent()"><i class="fas fa-share-nodes"></i> શેર</button>
+    <button class="primary" onclick="closeDetail()"><i class="fas fa-check"></i> સ્વીકૃતિ</button>
   </div>
 </div>
 
-<!-- NOTIFICATION TOASTS -->
+<!-- TOASTS -->
 <div class="toast-container" id="toast-container"></div>
 
-<!-- ========================================================
-     JAVASCRIPT: ALL APPLICATION LOGIC
-     ======================================================== -->
 <script>
-/* ============================================================
-   CONFIGURATION & CONSTANTS
-   ============================================================ */
-const CONFIG = {
+/* ===========================================================
+   GUJARATI TRANSLATIONS MAP
+   =========================================================== */
+var GU = {
+  // Categories
+  catNames: {
+    conflict: 'સંઘર્ષ',
+    breaking: 'તાજા સમાચાર',
+    weather: 'હવામાન',
+    economic: 'આર્થિક',
+    cyber: 'સાયબર',
+    health: 'આરોગ્ય'
+  },
+  // Time ago
+  justNow: 'હમણાં જ',
+  secAgo: function(n){ return n + ' સે. પહેલાં'; },
+  minAgo: function(n){ return n + ' મિ. પહેલાં'; },
+  hrAgo: function(n){ return n + ' ક. પહેલાં'; },
+  dayAgo: function(n){ return n + ' દિ. પહેલાં'; },
+  // Severity
+  sev: 'તીવ્રતા',
+  sevLevel: function(n){ return 'સ્તર ' + n; },
+  // Labels
+  eventId: 'ઘટના ID',
+  source: 'સ્ત્રોત',
+  timestamp: 'સમય',
+  coordinates: 'કોઓર્ડિનેટ્સ',
+  region: 'પ્રદેશ',
+  situationReport: 'સ્થિતિ અહેવાલ',
+  aiSummary: 'AI ગુપ્તચર સારાંશ',
+  aiAnalysis: 'પટેલ AI વિશ્લેષણ',
+  relatedEvents: 'સંબંધિત ઘટનાઓ',
+  events: 'ઘટનાઓ',
+  markers: 'માર્કર',
+  streams: 'સ્ટ્રીમ સક્રિય',
+  bookmark: 'બુકમાર્ક',
+  share: 'શેર',
+  acknowledge: 'સ્વીકૃતિ',
+  bookmarked: 'બુકમાર્ક કર્યું',
+  removed: 'દૂર કર્યું',
+  copied: 'ક્લિપબોર્ડ પર કૉપિ કર્યું',
+  alert: 'ચેતવણી',
+  // Threat levels
+  threatSevere: 'ગંભીર',
+  threatHigh: 'ઉચ્ચ',
+  threatElevated: 'ઊંચું',
+  // Numbers in Gujarati
+  toGuNum: function(n) {
+    var guDigits = ['૦','૧','૨','૩','૪','૫','૬','૭','૮','૯'];
+    return String(n).replace(/[0-9]/g, function(d) { return guDigits[parseInt(d)]; });
+  }
+};
+
+/* ===========================================================
+   CONFIGURATION
+   =========================================================== */
+var CONFIG = {
   MAP_CENTER: [20, 10],
   MAP_ZOOM: 3,
   TILE_URL: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-  UPDATE_INTERVAL: 8000,      // New events every 8 seconds
-  TOAST_DURATION: 6000,       // Toast auto-dismiss after 6s
-  MAX_FEED_ITEMS: 80,         // Max items in feed
-  MAX_EVENTS: 120,            // Max total events
-  SPARKLINE_POINTS: 15,       // Data points per sparkline
+  UPDATE_INTERVAL: 8000,
+  TOAST_DURATION: 6000,
+  MAX_FEED_ITEMS: 80,
+  MAX_EVENTS: 120,
+  SPARKLINE_POINTS: 15
 };
 
-/* Category color mappings */
-const CATEGORY_COLORS = {
-  conflict: '#ff2d55', breaking: '#ffb400', weather: '#3b82f6',
-  economic: '#00e676', cyber: '#a855f7', health: '#ff6b35'
+var CATEGORY_COLORS = {
+  conflict:'#ff2d55', breaking:'#ffb400', weather:'#3b82f6',
+  economic:'#00e676', cyber:'#a855f7', health:'#ff6b35'
+};
+var CATEGORY_ICONS = {
+  conflict:'fa-crosshairs', breaking:'fa-bolt', weather:'fa-cloud-bolt',
+  economic:'fa-chart-line', cyber:'fa-shield-halved', health:'fa-heart-pulse'
 };
 
-const CATEGORY_ICONS = {
-  conflict: 'fa-crosshairs', breaking: 'fa-bolt', weather: 'fa-cloud-bolt',
-  economic: 'fa-chart-line', cyber: 'fa-shield-halved', health: 'fa-heart-pulse'
-};
-
-/* ============================================================
+/* ===========================================================
    GLOBAL STATE
-   ============================================================ */
-const STATE = {
+   =========================================================== */
+var STATE = {
   events: [],
   markers: {},
+  markerLayer: null,
   map: null,
   activeFilter: 'all',
   searchQuery: '',
   severityFilter: 0,
   selectedEvent: null,
-  bookmarks: new Set(),
-  sparkData: {
-    conflict: [], breaking: [], weather: [],
-    economic: [], cyber: []
-  },
+  bookmarks: {},
+  sparkData: { conflict:[], breaking:[], weather:[], economic:[], cyber:[] },
   eventIdCounter: 0,
+  aiTypingInterval: null,
+  detailOpen: false
 };
 
-/* ============================================================
-   REALISTIC EVENT DATA TEMPLATES
-   ============================================================ */
-const LOCATIONS = [
-  {city:'Kyiv',country:'Ukraine',region:'Europe',lat:50.45,lng:30.52},
-  {city:'Gaza City',country:'Palestine',region:'Middle East',lat:31.50,lng:34.47},
-  {city:'Taipei',country:'Taiwan',region:'Asia',lat:25.03,lng:121.57},
-  {city:'Moscow',country:'Russia',region:'Europe',lat:55.76,lng:37.62},
-  {city:'Beijing',country:'China',region:'Asia',lat:39.91,lng:116.40},
-  {city:'Washington DC',country:'USA',region:'North America',lat:38.91,lng:-77.04},
-  {city:'London',country:'UK',region:'Europe',lat:51.51,lng:-0.13},
-  {city:'Tokyo',country:'Japan',region:'Asia',lat:35.68,lng:139.69},
-  {city:'Seoul',country:'South Korea',region:'Asia',lat:37.57,lng:126.98},
-  {city:'Berlin',country:'Germany',region:'Europe',lat:52.52,lng:13.41},
-  {city:'Paris',country:'France',region:'Europe',lat:48.86,lng:2.35},
-  {city:'Mumbai',country:'India',region:'Asia',lat:19.08,lng:72.88},
-  {city:'São Paulo',country:'Brazil',region:'South America',lat:-23.55,lng:-46.63},
-  {city:'Lagos',country:'Nigeria',region:'Africa',lat:6.52,lng:3.38},
-  {city:'Cairo',country:'Egypt',region:'Africa',lat:30.04,lng:31.24},
-  {city:'Sydney',country:'Australia',region:'Oceania',lat:-33.87,lng:151.21},
-  {city:'Miami',country:'USA',region:'North America',lat:25.76,lng:-80.19},
-  {city:'Mexico City',country:'Mexico',region:'North America',lat:19.43,lng:-99.13},
-  {city:'Singapore',country:'Singapore',region:'Asia',lat:1.35,lng:103.82},
-  {city:'Dubai',country:'UAE',region:'Middle East',lat:25.20,lng:55.27},
-  {city:'Istanbul',country:'Turkey',region:'Europe',lat:41.01,lng:28.98},
-  {city:'Nairobi',country:'Kenya',region:'Africa',lat:-1.29,lng:36.82},
-  {city:'Buenos Aires',country:'Argentina',region:'South America',lat:-34.60,lng:-58.38},
-  {city:'Jakarta',country:'Indonesia',region:'Asia',lat:-6.21,lng:106.85},
-  {city:'Bangkok',country:'Thailand',region:'Asia',lat:13.76,lng:100.50},
-  {city:'Lima',country:'Peru',region:'South America',lat:-12.05,lng:-77.04},
-  {city:'Manila',country:'Philippines',region:'Asia',lat:14.60,lng:120.98},
-  {city:'Riyadh',country:'Saudi Arabia',region:'Middle East',lat:24.71,lng:46.67},
-  {city:'Kabul',country:'Afghanistan',region:'Asia',lat:34.53,lng:69.17},
-  {city:'Khartoum',country:'Sudan',region:'Africa',lat:15.50,lng:32.56},
-  {city:'Ankara',country:'Turkey',region:'Europe',lat:39.93,lng:32.85},
-  {city:'Tehran',country:'Iran',region:'Middle East',lat:35.69,lng:51.39},
-  {city:'Bogotá',country:'Colombia',region:'South America',lat:4.71,lng:-74.07},
-  {city:'Dhaka',country:'Bangladesh',region:'Asia',lat:23.81,lng:90.41},
-  {city:'Johannesburg',country:'South Africa',region:'Africa',lat:-26.20,lng:28.05},
-  {city:'Yangon',country:'Myanmar',region:'Asia',lat:16.87,lng:96.20},
-  {city:'Addis Ababa',country:'Ethiopia',region:'Africa',lat:9.02,lng:38.75},
-  {city:'Caracas',country:'Venezuela',region:'South America',lat:10.49,lng:-66.88},
-  {city:'Hanoi',country:'Vietnam',region:'Asia',lat:21.03,lng:105.85},
-  {city:'Lisbon',country:'Portugal',region:'Europe',lat:38.72,lng:-9.14},
+/* ===========================================================
+   LOCATIONS
+   =========================================================== */
+var LOCATIONS = [
+  {city:'કિવ',country:'યુક્રેન',region:'યુરોપ',lat:50.45,lng:30.52},
+  {city:'ગાઝા શહેર',country:'પેલેસ્ટાઇન',region:'મધ્ય પૂર્વ',lat:31.50,lng:34.47},
+  {city:'તાઇપેઈ',country:'તાઈવાન',region:'એશિયા',lat:25.03,lng:121.57},
+  {city:'મોસ્કો',country:'રશિયા',region:'યુરોપ',lat:55.76,lng:37.62},
+  {city:'બેઇજિંગ',country:'ચીન',region:'એશિયા',lat:39.91,lng:116.40},
+  {city:'વોશિંગ્ટન ડીસી',country:'અમેરિકા',region:'ઉત્તર અમેરિકા',lat:38.91,lng:-77.04},
+  {city:'લંડન',country:'યુકે',region:'યુરોપ',lat:51.51,lng:-0.13},
+  {city:'ટોક્યો',country:'જાપાન',region:'એશિયા',lat:35.68,lng:139.69},
+  {city:'સિઓલ',country:'દક્ષિણ કોરિયા',region:'એશિયા',lat:37.57,lng:126.98},
+  {city:'બર્લિન',country:'જર્મની',region:'યુરોપ',lat:52.52,lng:13.41},
+  {city:'પેરિસ',country:'ફ્રાન્સ',region:'યુરોપ',lat:48.86,lng:2.35},
+  {city:'મુંબઈ',country:'ભારત',region:'એશિયા',lat:19.08,lng:72.88},
+  {city:'સાઓ પાઉલો',country:'બ્રાઝિલ',region:'દક્ષિણ અમેરિકા',lat:-23.55,lng:-46.63},
+  {city:'લાગોસ',country:'નાઇજીરિયા',region:'આફ્રિકા',lat:6.52,lng:3.38},
+  {city:'કાહિરા',country:'ઇજિપ્ત',region:'આફ્રિકા',lat:30.04,lng:31.24},
+  {city:'સિડની',country:'ઓસ્ટ્રેલિયા',region:'ઓશનિયા',lat:-33.87,lng:151.21},
+  {city:'મિયામી',country:'અમેરિકા',region:'ઉત્તર અમેરિકા',lat:25.76,lng:-80.19},
+  {city:'મેક્સિકો સિટી',country:'મેક્સિકો',region:'ઉત્તર અમેરિકા',lat:19.43,lng:-99.13},
+  {city:'સિંગાપુર',country:'સિંગાપુર',region:'એશિયા',lat:1.35,lng:103.82},
+  {city:'દુબઈ',country:'યુએઈ',region:'મધ્ય પૂર્વ',lat:25.20,lng:55.27},
+  {city:'ઇસ્તાંબુલ',country:'તુર્કી',region:'યુરોપ',lat:41.01,lng:28.98},
+  {city:'નૈરોબી',country:'કેન્યા',region:'આફ્રિકા',lat:-1.29,lng:36.82},
+  {city:'અમદાવાદ',country:'ભારત',region:'એશિયા',lat:23.02,lng:72.57},
+  {city:'જકાર્તા',country:'ઇન્ડોનેશિયા',region:'એશિયા',lat:-6.21,lng:106.85},
+  {city:'બેંગકોક',country:'થાઈલેન્ડ',region:'એશિયા',lat:13.76,lng:100.50},
+  {city:'સુરત',country:'ભારત',region:'એશિયા',lat:21.17,lng:72.83},
+  {city:'મનિલા',country:'ફિલિપાઈન્સ',region:'એશિયા',lat:14.60,lng:120.98},
+  {city:'રિયાધ',country:'સાઉદી અરેબિયા',region:'મધ્ય પૂર્વ',lat:24.71,lng:46.67},
+  {city:'કાબુલ',country:'અફઘાનિસ્તાન',region:'એશિયા',lat:34.53,lng:69.17},
+  {city:'ખારટૂમ',country:'સુદાન',region:'આફ્રિકા',lat:15.50,lng:32.56},
+  {city:'દિલ્હી',country:'ભારત',region:'એશિયા',lat:28.61,lng:77.21},
+  {city:'તેહરાન',country:'ઇરાન',region:'મધ્ય પૂર્વ',lat:35.69,lng:51.39},
+  {city:'વડોદરા',country:'ભારત',region:'એશિયા',lat:22.31,lng:73.18},
+  {city:'ઢાકા',country:'બાંગ્લાદેશ',region:'એશિયા',lat:23.81,lng:90.41},
+  {city:'જોહાનિસબર્ગ',country:'દક્ષિણ આફ્રિકા',region:'આફ્રિકા',lat:-26.20,lng:28.05},
+  {city:'રાજકોટ',country:'ભારત',region:'એશિયા',lat:22.30,lng:70.80},
+  {city:'ચેન્નાઈ',country:'ભારત',region:'એશિયા',lat:13.08,lng:80.27},
+  {city:'કરાચી',country:'પાકિસ્તાન',region:'એશિયા',lat:24.86,lng:67.01},
+  {city:'હનોઈ',country:'વિયેતનામ',region:'એશિયા',lat:21.03,lng:105.85},
+  {city:'લિસ્બન',country:'પોર્ટુગલ',region:'યુરોપ',lat:38.72,lng:-9.14}
 ];
 
-const EVENT_TEMPLATES = {
+/* ===========================================================
+   EVENT TEMPLATES (GUJARATI)
+   =========================================================== */
+var EVENT_TEMPLATES = {
   conflict: [
-    {t:'Military operations reported near {loc}',d:'Armed forces have been observed conducting operations in the region. Multiple reports from local sources confirm increased military activity including troop movements and aerial operations.',s:[4,5]},
-    {t:'Escalation of tensions along {loc} border region',d:'Diplomatic sources report growing tensions along the border area. International observers have noted increased military posture and mobilization of reserve forces.',s:[3,4]},
-    {t:'Armed clashes reported in {loc} suburbs',d:'Local security forces engaged in firefight with unknown armed group on the outskirts of the city. Civilian casualties reported. Area has been cordoned off.',s:[4,5]},
-    {t:'Drone strike targets facility near {loc}',d:'An unmanned aerial vehicle struck a military installation approximately 15km from the city center. Damage assessment is ongoing. No group has claimed responsibility.',s:[5,5]},
-    {t:'Ceasefire violations documented in {loc} area',d:'International monitoring group has documented multiple ceasefire violations in the past 24 hours, including artillery fire and small arms exchanges.',s:[3,4]},
-    {t:'Protests turn violent in central {loc}',d:'What began as a peaceful demonstration escalated when security forces used tear gas and rubber bullets. At least 30 injuries reported.',s:[3,4]},
+    {t:'{loc} નજીક લશ્કરી કાર્યવાહી નોંધાઈ',d:'સશસ્ત્ર દળો આ પ્રદેશમાં કાર્યવાહી કરી રહ્યા હોવાનું જોવા મળ્યું છે. સ્થાનિક સ્ત્રોતોના અનેક અહેવાલો સૈનિકોની હિલચાલ અને હવાઈ કામગીરી સહિત વધેલી લશ્કરી પ્રવૃત્તિની પુષ્ટિ કરે છે.',s:[4,5]},
+    {t:'{loc} સરહદ પ્રદેશમાં તણાવમાં વધારો',d:'રાજદ્વારી સ્ત્રોતો સરહદ વિસ્તારમાં વધતા તણાવની જાણ કરે છે. આંતરરાષ્ટ્રીય નિરીક્ષકોએ વધેલી લશ્કરી સ્થિતિ અને અનામત દળોની ગતિવિધિ નોંધી છે.',s:[3,4]},
+    {t:'{loc} ઉપનગરોમાં સશસ્ત્ર અથડામણ',d:'સ્થાનિક સુરક્ષા દળો શહેરની બહાર અજાણ્યા સશસ્ત્ર જૂથ સાથે ગોળીબારમાં રોકાયા. નાગરિક જાનહાનિ નોંધાઈ. વિસ્તાર ઘેરી લેવામાં આવ્યો છે.',s:[4,5]},
+    {t:'{loc} નજીક ડ્રોન હુમલો',d:'એક માનવરહિત હવાઈ વાહને શહેર કેન્દ્રથી લગભગ ૧૫ કિમી દૂર એક લશ્કરી સ્થાપના પર હુમલો કર્યો. નુકસાનનું મૂલ્યાંકન ચાલુ છે. કોઈ જૂથે જવાબદારી સ્વીકારી નથી.',s:[5,5]},
+    {t:'{loc} વિસ્તારમાં યુદ્ધવિરામ ઉલ્લંઘન',d:'આંતરરાષ્ટ્રીય નિરીક્ષણ જૂથે છેલ્લા ૨૪ કલાકમાં તોપખાનાના ગોળીબાર અને નાના શસ્ત્રોના વિનિમય સહિત અનેક યુદ્ધવિરામ ઉલ્લંઘન દસ્તાવેજ કર્યા છે.',s:[3,4]},
+    {t:'{loc} કેન્દ્રમાં વિરોધ પ્રદર્શન હિંસક',d:'શાંતિપૂર્ણ પ્રદર્શન ત્યારે ઉગ્ર બન્યું જ્યારે સુરક્ષા દળોએ આંસુ ગેસ અને રબર બુલેટનો ઉપયોગ કર્યો. ઓછામાં ઓછા ૩૦ ઈજાઓ નોંધાઈ.',s:[3,4]}
   ],
   breaking: [
-    {t:'Major political development in {country}',d:'Senior government officials announced sweeping policy changes that could reshape the political landscape. Opposition leaders have called for emergency parliamentary sessions.',s:[3,4]},
-    {t:'Breaking: Emergency declared in {loc}',d:'Authorities have declared a state of emergency following a series of incidents. Essential services are being mobilized and citizens advised to remain indoors.',s:[4,5]},
-    {t:'Historic agreement signed in {loc}',d:'In a landmark diplomatic achievement, rival factions signed a comprehensive agreement addressing years of dispute. International community has cautiously welcomed the development.',s:[2,3]},
-    {t:'Mass evacuation ordered in {loc} region',d:'Local authorities have ordered the evacuation of approximately 50,000 residents due to an imminent threat. Emergency shelters are being set up across multiple locations.',s:[4,5]},
-    {t:'Critical infrastructure failure in {loc}',d:'A major infrastructure system experienced catastrophic failure, affecting services for millions. Emergency repair crews have been dispatched.',s:[3,4]},
-    {t:'High-profile arrest in {country}',d:'Law enforcement agencies have arrested a key figure in connection with major ongoing investigation. The arrest is expected to have far-reaching implications.',s:[3,3]},
+    {t:'{country}માં મહત્ત્વપૂર્ણ રાજકીય ઘટનાક્રમ',d:'વરિષ્ઠ સરકારી અધિકારીઓએ વ્યાપક નીતિ ફેરફારોની જાહેરાત કરી જે રાજકીય ભૂમિકાને બદલી શકે છે. વિપક્ષના નેતાઓએ કટોકટી સંસદીય સત્ર માટે હાકલ કરી છે.',s:[3,4]},
+    {t:'{loc}માં કટોકટી જાહેર',d:'અધિકારીઓએ ઘટનાઓની શ્રેણી બાદ કટોકટીની સ્થિતિ જાહેર કરી છે. આવશ્યક સેવાઓ ગતિશીલ કરવામાં આવી રહી છે અને નાગરિકોને ઘરમાં રહેવાની સલાહ આપવામાં આવી છે.',s:[4,5]},
+    {t:'{loc}માં ઐતિહાસિક કરાર પર હસ્તાક્ષર',d:'એક ઐતિહાસિક રાજદ્વારી સિદ્ધિમાં, પ્રતિસ્પર્ધી જૂથોએ વર્ષોના વિવાદને સંબોધતા વ્યાપક કરાર પર હસ્તાક્ષર કર્યા. આંતરરાષ્ટ્રીય સમુદાયે સાવધાનીપૂર્વક સ્વાગત કર્યું છે.',s:[2,3]},
+    {t:'{loc} પ્રદેશમાં સામૂહિક ખાલી કરાવવાનો આદેશ',d:'સ્થાનિક સત્તાવાળાઓએ નિકટવર્તી ખતરાને કારણે લગભગ ૫૦,૦૦૦ રહેવાસીઓને ખાલી કરાવવાનો આદેશ આપ્યો છે. અનેક સ્થળોએ કટોકટી આશ્રયસ્થાનો ઉભા કરવામાં આવી રહ્યા છે.',s:[4,5]},
+    {t:'{loc}માં મહત્ત્વના માળખાકીય સુવિધાની નિષ્ફળતા',d:'એક મુખ્ય ઈન્ફ્રાસ્ટ્રક્ચર સિસ્ટમમાં ગંભીર નિષ્ફળતા આવી, જેથી લાખો લોકોની સેવાઓ પ્રભાવિત થઈ. ઈમરજન્સી રિપેર ટીમો મોકલવામાં આવી છે.',s:[3,4]},
+    {t:'{country}માં ઉચ્ચ-સ્તરીય ધરપકડ',d:'કાયદા અમલીકરણ એજન્સીઓએ ચાલુ તપાસ સાથે સંબંધિત એક મુખ્ય વ્યક્તિની ધરપકડ કરી છે. આ ધરપકડની દૂરગામી અસરો થવાની અપેક્ષા છે.',s:[3,3]}
   ],
   weather: [
-    {t:'Severe storm system approaching {loc}',d:'Meteorological agencies tracking a powerful storm system with sustained winds exceeding 120 km/h. Flooding and infrastructure damage expected in coastal areas.',s:[3,4]},
-    {t:'Earthquake detected near {loc} (M6.2)',d:'Seismological institutes have recorded a significant earthquake at a depth of 10km. Tsunami advisories have been issued for coastal communities. Emergency response activated.',s:[4,5]},
-    {t:'Extreme heat advisory for {loc} region',d:'Temperature records are expected to be broken with forecasts reaching 48°C. Health authorities are warning of heat stroke risks and advising vulnerable populations to seek shelter.',s:[2,3]},
-    {t:'Flooding emergency in {loc} metropolitan area',d:'Heavy rainfall over 72 hours has overwhelmed drainage systems. Major roads and transportation networks are disrupted. Rescue operations underway.',s:[4,4]},
-    {t:'Volcanic activity alert near {loc}',d:'Seismic monitoring stations have detected increased volcanic activity. Authorities have raised the alert level and are preparing for potential evacuation.',s:[3,5]},
-    {t:'Wildfire threatens {loc} communities',d:'A fast-moving wildfire has consumed over 15,000 hectares and is threatening residential areas. Multiple firefighting aircraft deployed. Evacuation orders issued.',s:[4,4]},
+    {t:'{loc} તરફ ગંભીર તોફાન આવી રહ્યું છે',d:'હવામાન એજન્સીઓ ૧૨૦ કિમી/કલાકથી વધુ ઝડપે પવન સાથે શક્તિશાળી તોફાન સિસ્ટમ ટ્રેક કરી રહી છે. દરિયાકિનારાના વિસ્તારોમાં પૂર અને માળખાકીય નુકસાનની અપેક્ષા છે.',s:[3,4]},
+    {t:'{loc} નજીક ભૂકંપ (M6.2)',d:'ભૂકંપશાસ્ત્ર સંસ્થાઓએ ૧૦ કિમીની ઊંડાઈએ નોંધપાત્ર ભૂકંપ નોંધ્યો છે. દરિયાકિનારાના સમુદાયો માટે સુનામી સલાહ જારી કરવામાં આવી છે. કટોકટી પ્રતિભાવ સક્રિય.',s:[4,5]},
+    {t:'{loc} પ્રદેશ માટે ભારે ગરમીની ચેતવણી',d:'તાપમાનના રેકોર્ડ તૂટવાની અપેક્ષા છે, અનુમાન ૪૮°C સુધી પહોંચી રહ્યા છે. આરોગ્ય સત્તાવાળાઓ હીટ સ્ટ્રોકના જોખમ અંગે ચેતવણી આપી રહ્યા છે.',s:[2,3]},
+    {t:'{loc} મહાનગર વિસ્તારમાં પૂરની કટોકટી',d:'૭૨ કલાક દરમિયાન ભારે વરસાદે ડ્રેનેજ સિસ્ટમ ઓવરલોડ કરી. મુખ્ય રસ્તાઓ અને પરિવહન નેટવર્ક વિક્ષેપિત છે. બચાવ કામગીરી ચાલુ.',s:[4,4]},
+    {t:'{loc} નજીક જ્વાળામુખી પ્રવૃત્તિ ચેતવણી',d:'ભૂકંપ નિરીક્ષણ સ્ટેશનોએ વધેલી જ્વાળામુખી પ્રવૃત્તિ શોધી કાઢી છે. સત્તાવાળાઓએ ચેતવણી સ્તર વધાર્યું છે અને ખાલી કરાવવાની તૈયારી કરી રહ્યા છે.',s:[3,5]},
+    {t:'{loc} સમુદાયોને જંગલની આગનો ખતરો',d:'ઝડપથી ફેલાતી જંગલની આગે ૧૫,૦૦૦ હેક્ટરથી વધુ વિસ્તાર બાળી નાખ્યો છે અને રહેણાંક વિસ્તારોને ખતરો છે. અનેક અગ્નિશમન વિમાન તૈનાત. ખાલી કરાવવાનો આદેશ.',s:[4,4]}
   ],
   economic: [
-    {t:'{country} central bank announces emergency rate decision',d:'In an unexpected move, the central bank has adjusted interest rates by 75 basis points. Markets are reacting sharply with significant currency volatility.',s:[3,4]},
-    {t:'Major market disruption affects {loc} financial district',d:'Trading was briefly halted on the main exchange after a sudden 5% drop. Analysts are pointing to geopolitical tensions and algorithmic trading as contributing factors.',s:[3,4]},
-    {t:'Supply chain crisis deepens in {loc} shipping hub',d:'Port congestion has reached critical levels with over 100 vessels waiting to dock. Global supply chain disruptions expected to worsen in coming weeks.',s:[2,3]},
-    {t:'{country} currency in freefall amid economic uncertainty',d:'The national currency has lost 12% of its value against the dollar in the past week. Central bank interventions have so far failed to stabilize the situation.',s:[4,4]},
-    {t:'Energy crisis escalates in {loc} region',d:'Rolling blackouts have been implemented as energy demand outstrips supply. Industrial output is being severely affected. Governments negotiating emergency energy imports.',s:[3,4]},
-    {t:'Tech sector layoffs accelerate from {loc}',d:'Major technology companies headquartered in the region announced combined layoffs of over 15,000 employees, signaling a significant downturn in the sector.',s:[2,3]},
+    {t:'{country} સેન્ટ્રલ બેંકે કટોકટી દર નિર્ણય જાહેર કર્યો',d:'એક અણધાર્યા પગલામાં, સેન્ટ્રલ બેંકે વ્યાજ દરમાં ૭૫ બેસિસ પોઈન્ટ્સનું ગોઠવણ કરી છે. બજારો નોંધપાત્ર ચલણ અસ્થિરતા સાથે તીવ્ર પ્રતિક્રિયા આપી રહ્યા છે.',s:[3,4]},
+    {t:'{loc} નાણાકીય જિલ્લામાં મોટું બજાર વિક્ષેપ',d:'અચાનક ૫% ઘટાડા બાદ મુખ્ય એક્સચેન્જ પર ટ્રેડિંગ ટૂંકમાં બંધ કરવામાં આવ્યું. વિશ્લેષકો ભૌગોલિક-રાજકીય તણાવ અને એલ્ગોરિધમિક ટ્રેડિંગ તરફ ઈશારો કરી રહ્યા છે.',s:[3,4]},
+    {t:'{loc} શિપિંગ હબમાં સપ્લાય ચેઇન કટોકટી ઊંડી',d:'પોર્ટ પર ભીડ ગંભીર સ્તરે પહોંચી છે, ૧૦૦થી વધુ જહાજો ડોક થવાની રાહ જોઈ રહ્યા છે. વૈશ્વિક સપ્લાય ચેઇન વિક્ષેપ આવનારા અઠવાડિયામાં વધુ ખરાબ થવાની અપેક્ષા.',s:[2,3]},
+    {t:'{country} ચલણ ધોવાણમાં',d:'રાષ્ટ્રીય ચલણે છેલ્લા એક અઠવાડિયામાં ડોલર સામે ૧૨% મૂલ્ય ગુમાવ્યું છે. સેન્ટ્રલ બેંકના હસ્તક્ષેપો અત્યાર સુધી પરિસ્થિતિને સ્થિર કરવામાં નિષ્ફળ રહ્યા છે.',s:[4,4]},
+    {t:'{loc} પ્રદેશમાં ઊર્જા કટોકટી વધી',d:'ઊર્જા માંગ પુરવઠા કરતાં વધી જતાં ચક્રીય બ્લેકઆઉટ લાગુ કરવામાં આવ્યા છે. ઔદ્યોગિક ઉત્પાદન ગંભીર રીતે પ્રભાવિત છે. સરકારો કટોકટી ઊર્જા આયાતની વાટાઘાટ કરી રહી છે.',s:[3,4]},
+    {t:'{loc}માંથી ટેક સેક્ટરમાં છટણી વધી',d:'પ્રદેશ સ્થિત મુખ્ય ટેક્નોલોજી કંપનીઓએ ૧૫,૦૦૦ થી વધુ કર્મચારીઓની સંયુક્ત છટણીની જાહેરાત કરી, જે ક્ષેત્રમાં નોંધપાત્ર ઘટાડાનો સંકેત આપે છે.',s:[2,3]}
   ],
   cyber: [
-    {t:'Large-scale cyberattack targets {country} infrastructure',d:'Critical national infrastructure has been hit by a sophisticated cyberattack. Government agencies report disruption to essential services. Attribution is being investigated.',s:[4,5]},
-    {t:'Data breach exposes millions of records in {loc}',d:'A major data breach has compromised personal information of an estimated 40 million individuals. The attack vector appears to be a zero-day vulnerability.',s:[3,4]},
-    {t:'Ransomware attack cripples {loc} healthcare system',d:'Hospital networks across the region have been encrypted by a ransomware gang. Patient care is being disrupted and ambulances are being diverted.',s:[4,5]},
-    {t:'State-sponsored hacking campaign detected from {country}',d:'Cybersecurity firms have uncovered a sophisticated espionage campaign targeting government agencies across multiple nations. Advanced persistent threat actors are suspected.',s:[3,4]},
-    {t:'Financial systems targeted in {loc} cyber incident',d:'Banking and payment systems experienced disruptions following a coordinated cyber campaign. Transactions were halted as a precautionary measure.',s:[4,4]},
+    {t:'{country} ઈન્ફ્રાસ્ટ્રક્ચર પર મોટા પાયે સાયબર હુમલો',d:'ગંભીર રાષ્ટ્રીય ઈન્ફ્રાસ્ટ્રક્ચર પર અત્યાધુનિક સાયબર હુમલો થયો છે. સરકારી એજન્સીઓ આવશ્યક સેવાઓમાં વિક્ષેપની જાણ કરે છે. તપાસ ચાલુ છે.',s:[4,5]},
+    {t:'{loc}માં ડેટા ભંગ - લાખો રેકોર્ડ ખુલ્લા',d:'એક મોટા ડેટા ભંગમાં અંદાજિત ૪ કરોડ વ્યક્તિઓની વ્યક્તિગત માહિતી ચોરાઈ છે. હુમલા માટે ઝીરો-ડે નબળાઈનો ઉપયોગ કરવામાં આવ્યો હોવાનું જણાય છે.',s:[3,4]},
+    {t:'{loc} હેલ્થકેર સિસ્ટમ પર રેન્સમવેર હુમલો',d:'પ્રદેશમાં હોસ્પિટલ નેટવર્ક્સ રેન્સમવેર ગેંગ દ્વારા એન્ક્રિપ્ટ કરવામાં આવ્યા છે. દર્દીની સંભાળ વિક્ષેપિત થઈ રહી છે અને એમ્બ્યુલન્સને ડાઈવર્ટ કરવામાં આવી રહી છે.',s:[4,5]},
+    {t:'{country} તરફથી રાજ્ય-પ્રાયોજિત હેકિંગ ઝુંબેશ',d:'સાયબર સુરક્ષા ફર્મોએ અનેક દેશોની સરકારી એજન્સીઓને લક્ષ્ય બનાવતી અત્યાધુનિક જાસૂસી ઝુંબેશ ઉજાગર કરી છે. એડવાન્સ્ડ પર્સિસ્ટન્ટ થ્રેટ એક્ટર્સની શંકા છે.',s:[3,4]},
+    {t:'{loc}માં સાયબર ઘટના - નાણાકીય સિસ્ટમ પ્રભાવિત',d:'સંકલિત સાયબર ઝુંબેશ બાદ બેંકિંગ અને ચુકવણી સિસ્ટમમાં વિક્ષેપ પડ્યો. સાવચેતીના પગલા તરીકે વ્યવહારો અટકાવવામાં આવ્યા.',s:[4,4]}
   ],
   health: [
-    {t:'Disease outbreak reported in {loc} region',d:'Health authorities are investigating a cluster of cases of an unknown illness. Over 200 cases have been identified in the past week. WHO has been notified.',s:[3,4]},
-    {t:'Hospital capacity crisis in {loc}',d:'Medical facilities are reporting critical overcrowding with ICU capacity at 98%. Emergency field hospitals are being established.',s:[3,4]},
-    {t:'Contamination alert in {loc} water supply',d:'Public health officials have detected elevated levels of contaminants in the municipal water supply. Residents advised to use bottled water until further notice.',s:[3,4]},
-  ],
+    {t:'{loc} પ્રદેશમાં રોગ ફાટી નીકળ્યો',d:'આરોગ્ય સત્તાવાળાઓ અજાણી બીમારીના કેસોની તપાસ કરી રહ્યા છે. છેલ્લા એક અઠવાડિયામાં ૨૦૦ થી વધુ કેસ ઓળખાયા છે. WHO ને જાણ કરવામાં આવી છે.',s:[3,4]},
+    {t:'{loc}માં હોસ્પિટલ ક્ષમતા કટોકટી',d:'તબીબી સુવિધાઓ ગંભીર ભીડ નોંધાવી રહી છે, ICU ક્ષમતા ૯૮% પર છે. કટોકટી ફિલ્ડ હોસ્પિટલો સ્થાપવામાં આવી રહી છે.',s:[3,4]},
+    {t:'{loc} પાણી પુરવઠામાં દૂષણ ચેતવણી',d:'જાહેર આરોગ્ય અધિકારીઓએ નગરપાલિકાના પાણી પુરવઠામાં દૂષકોનું ઊંચું સ્તર શોધી કાઢ્યું છે. આગળની સૂચના સુધી રહેવાસીઓને બોટલનું પાણી વાપરવાની સલાહ.',s:[3,4]}
+  ]
 };
 
-const SOURCES = [
-  'Reuters','AP News','Bloomberg','BBC World','Al Jazeera','CNN','AFP',
-  'DW News','NHK World','France24','Sky News','TASS','Xinhua',
-  'The Guardian','WSJ','Financial Times','CNBC','The Economist'
+var SOURCES = [
+  'રોઈટર્સ','AP ન્યૂઝ','બ્લૂમબર્ગ','BBC વિશ્વ','અલ જઝીરા','CNN','AFP',
+  'DW ન્યૂઝ','NHK વિશ્વ','ફ્રાન્સ24','સ્કાય ન્યૂઝ','ધ ગાર્ડિયન','WSJ','ફાઇનાન્શિયલ ટાઇમ્સ','CNBC'
 ];
 
-/* ============================================================
-   BOOT SEQUENCE
-   ============================================================ */
-const BOOT_MESSAGES = [
-  {text:'Initializing NEXUS core engine v4.2.1...', delay:200, type:'normal'},
-  {text:'Loading geospatial intelligence modules...', delay:400, type:'normal'},
-  {text:'Establishing encrypted satellite uplinks...', delay:600, type:'normal'},
-  {text:'Connecting to SIGINT data streams... [6/6 active]', delay:800, type:'success'},
-  {text:'Calibrating threat assessment algorithms...', delay:1000, type:'normal'},
-  {text:'Synchronizing global event databases...', delay:1200, type:'normal'},
-  {text:'Loading OSINT feeds: Reuters, AP, Bloomberg, GDELT...', delay:1400, type:'normal'},
-  {text:'Warning: Elevated global threat index detected (7.4/10)', delay:1600, type:'error'},
-  {text:'Initializing AI analysis pipeline (GPT-NEXUS)...', delay:1800, type:'normal'},
-  {text:'Map rendering engine ready', delay:2000, type:'success'},
-  {text:'Real-time monitoring active — all systems nominal', delay:2200, type:'success'},
-  {text:'NEXUS ONLINE. Welcome, Operator.', delay:2600, type:'success'},
+/* ===========================================================
+   BOOT SEQUENCE (GUJARATI)
+   =========================================================== */
+var BOOT_MESSAGES = [
+  {text:'પટેલ કોર એન્જિન v4.2.1 શરૂ કરી રહ્યા છીએ...', delay:200, type:'normal', gu:true},
+  {text:'ભૌગોલિક ગુપ્તચર મોડ્યુલ્સ લોડ થઈ રહ્યા છે...', delay:400, type:'normal', gu:true},
+  {text:'એન્ક્રિપ્ટેડ ઉપગ્રહ અપલિંક્સ સ્થાપિત થઈ રહ્યા છે...', delay:600, type:'normal', gu:true},
+  {text:'SIGINT ડેટા સ્ટ્રીમ્સ સાથે જોડાણ... [૬/૬ સક્રિય]', delay:800, type:'success', gu:true},
+  {text:'જોખમ મૂલ્યાંકન ગાણિતિક પદ્ધતિ માપાંકિત થઈ રહી છે...', delay:1000, type:'normal', gu:true},
+  {text:'વૈશ્વિક ઘટના ડેટાબેઝ સમન્વયિત થઈ રહ્યો છે...', delay:1200, type:'normal', gu:true},
+  {text:'OSINT ફીડ્સ લોડ: રોઈટર્સ, AP, બ્લૂમબર્ગ, GDELT...', delay:1400, type:'normal', gu:true},
+  {text:'ચેતવણી: ઉચ્ચ વૈશ્વિક જોખમ સૂચકાંક મળ્યો (૭.૪/૧૦)', delay:1600, type:'error', gu:true},
+  {text:'AI વિશ્લેષણ પાઇપલાઇન (GPT-પટેલ) શરૂ થઈ રહી છે...', delay:1800, type:'normal', gu:true},
+  {text:'નકશા રેન્ડરિંગ એન્જિન તૈયાર', delay:2000, type:'success', gu:true},
+  {text:'રિયલ-ટાઇમ દેખરેખ સક્રિય — બધી સિસ્ટમ સામાન્ય', delay:2200, type:'success', gu:true},
+  {text:'પટેલ ઓનલાઈન. સ્વાગત છે, ઓપરેટર.', delay:2600, type:'success', gu:true}
 ];
 
 function runBootSequence() {
-  const msgContainer = document.getElementById('boot-messages');
-  const progressBar = document.getElementById('boot-progress-bar');
-  const total = BOOT_MESSAGES.length;
+  var msgContainer = document.getElementById('boot-messages');
+  var progressBar = document.getElementById('boot-progress-bar');
+  var total = BOOT_MESSAGES.length;
 
-  BOOT_MESSAGES.forEach((msg, i) => {
-    setTimeout(() => {
-      const div = document.createElement('div');
-      div.className = `msg ${msg.type}`;
+  BOOT_MESSAGES.forEach(function(msg, i) {
+    setTimeout(function() {
+      var div = document.createElement('div');
+      div.className = 'msg ' + msg.type + (msg.gu ? ' msg-gu' : '');
       div.textContent = msg.text;
-      div.style.animationDelay = '0s';
       msgContainer.appendChild(div);
       msgContainer.scrollTop = msgContainer.scrollHeight;
-      progressBar.style.width = `${((i + 1) / total) * 100}%`;
+      progressBar.style.width = ((i + 1) / total * 100) + '%';
 
-      // Last message: transition to app
       if (i === total - 1) {
-        setTimeout(() => {
+        setTimeout(function() {
           document.getElementById('boot-screen').classList.add('hidden');
-          const app = document.getElementById('app');
+          var app = document.getElementById('app');
           app.style.display = 'flex';
-          requestAnimationFrame(() => app.classList.add('visible'));
+          void app.offsetHeight;
+          app.classList.add('visible');
           initApp();
         }, 1000);
       }
@@ -1116,668 +1145,554 @@ function runBootSequence() {
   });
 }
 
-/* ============================================================
-   MAP INITIALIZATION
-   ============================================================ */
-function initMap() {
-  STATE.map = L.map('map', {
-    center: CONFIG.MAP_CENTER,
-    zoom: CONFIG.MAP_ZOOM,
-    zoomControl: true,
-    attributionControl: false,
-    minZoom: 2,
-    maxZoom: 14,
-    worldCopyJump: true,
-  });
+/* ===========================================================
+   HELPERS
+   =========================================================== */
+function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
-  L.tileLayer(CONFIG.TILE_URL, {
-    subdomains: 'abcd',
-    maxZoom: 19,
-  }).addTo(STATE.map);
-
-  // Customize zoom control position
-  STATE.map.zoomControl.setPosition('topleft');
-}
-
-/* ============================================================
-   EVENT GENERATION ENGINE
-   ============================================================ */
 function generateEventId() {
-  return `EVT-${String(++STATE.eventIdCounter).padStart(5, '0')}`;
+  STATE.eventIdCounter++;
+  var id = String(STATE.eventIdCounter);
+  while (id.length < 5) id = '0' + id;
+  return 'EVT-' + id;
 }
 
-function pickRandom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function generateEvent(category) {
-  if (!category) {
-    const cats = ['conflict','breaking','weather','economic','cyber','health'];
-    const weights = [20, 25, 20, 15, 12, 8]; // probability weights
-    const total = weights.reduce((a, b) => a + b, 0);
-    let r = Math.random() * total;
-    for (let i = 0; i < cats.length; i++) {
-      r -= weights[i];
-      if (r <= 0) { category = cats[i]; break; }
-    }
-  }
-
-  const loc = pickRandom(LOCATIONS);
-  const template = pickRandom(EVENT_TEMPLATES[category]);
-  const severity = template.s[Math.floor(Math.random() * template.s.length)];
-
-  // Apply small random offset to prevent marker stacking
-  const latOff = (Math.random() - 0.5) * 2;
-  const lngOff = (Math.random() - 0.5) * 2;
-
-  const title = template.t
-    .replace('{loc}', loc.city)
-    .replace('{country}', loc.country);
-
-  const event = {
-    id: generateEventId(),
-    title: title,
-    description: template.d,
-    category: category,
-    severity: severity,
-    lat: loc.lat + latOff,
-    lng: loc.lng + lngOff,
-    city: loc.city,
-    country: loc.country,
-    region: loc.region,
-    location: `${loc.city}, ${loc.country}`,
-    source: pickRandom(SOURCES),
-    timestamp: new Date(),
-    aiSummary: generateAISummary(title, category, severity, loc),
-    bookmarked: false,
-  };
-
-  return event;
-}
-
-function generateAISummary(title, category, severity, loc) {
-  const risk = severity >= 4 ? 'HIGH RISK' : severity >= 3 ? 'MODERATE RISK' : 'LOW RISK';
-  const summaries = [
-    `[${risk}] This ${category} event in ${loc.region} requires attention. Key stakeholders in the ${loc.country} area should monitor developments closely. Potential for escalation exists based on historical patterns in the region. Recommend enhanced monitoring of related intelligence streams.`,
-    `[${risk}] NEXUS AI assesses this situation as significant for regional stability. The incident in ${loc.city} follows a pattern of similar events over the past 30 days. Cross-referencing with OSINT feeds indicates possible connection to broader geopolitical dynamics.`,
-    `[${risk}] Analysis indicates this event could impact operations in ${loc.country} and neighboring regions. Severity assessment based on multiple indicators including historical data, current geopolitical context, and source reliability scoring.`,
-  ];
-  return pickRandom(summaries);
-}
-
-/* ============================================================
-   MARKER MANAGEMENT
-   ============================================================ */
-function createMarkerElement(event) {
-  const el = document.createElement('div');
-  el.className = 'event-marker';
-  el.innerHTML = `
-    <div class="marker-dot ${event.category} severity-${event.severity}"></div>
-    <div class="marker-tooltip">
-      <div class="marker-tooltip-title">${event.title}</div>
-      <div class="marker-tooltip-loc"><i class="fas fa-map-pin"></i> ${event.location}</div>
-    </div>
-  `;
-  return el;
-}
-
-function addMarker(event) {
-  const el = createMarkerElement(event);
-  const icon = L.divIcon({
-    html: el.outerHTML,
-    className: '',
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
-  });
-
-  const marker = L.marker([event.lat, event.lng], { icon: icon })
-    .addTo(STATE.map)
-    .on('click', () => openDetail(event.id));
-
-  STATE.markers[event.id] = marker;
-}
-
-function removeMarker(eventId) {
-  if (STATE.markers[eventId]) {
-    STATE.map.removeLayer(STATE.markers[eventId]);
-    delete STATE.markers[eventId];
-  }
-}
-
-function refreshMapMarkers() {
-  // Remove all existing markers
-  Object.values(STATE.markers).forEach(m => STATE.map.removeLayer(m));
-  STATE.markers = {};
-
-  // Add markers for filtered events
-  getFilteredEvents().forEach(evt => addMarker(evt));
-
-  // Update marker count badge
-  const count = Object.keys(STATE.markers).length;
-  document.getElementById('marker-count').textContent = `${count} markers`;
-}
-
-/* ============================================================
-   FEED MANAGEMENT
-   ============================================================ */
-function renderFeedItem(event) {
-  const ago = timeAgo(event.timestamp);
-  const sevClass = event.severity >= 5 ? 'sev-5' : event.severity >= 4 ? 'sev-4' : '';
-  const critClass = event.severity >= 5 ? 'critical' : 'unread';
-  const bmClass = STATE.bookmarks.has(event.id) ? 'active' : '';
-
-  return `
-    <div class="feed-item ${critClass}" data-id="${event.id}" onclick="openDetail('${event.id}')">
-      <button class="feed-item-bookmark ${bmClass}" onclick="event.stopPropagation();toggleBookmark('${event.id}')">
-        <i class="${STATE.bookmarks.has(event.id) ? 'fas' : 'far'} fa-bookmark"></i>
-      </button>
-      <div class="feed-item-header">
-        <span class="feed-item-cat ${event.category}">${event.category.toUpperCase()}</span>
-        <span class="feed-item-severity ${sevClass}">SEV ${event.severity}</span>
-      </div>
-      <div class="feed-item-title">${event.title}</div>
-      <div class="feed-item-meta">
-        <span><i class="fas fa-map-pin"></i> ${event.location}</span>
-        <span><i class="far fa-clock"></i> ${ago}</span>
-        <span><i class="fas fa-rss"></i> ${event.source}</span>
-      </div>
-    </div>
-  `;
-}
-
-function refreshFeed() {
-  const feedList = document.getElementById('feed-list');
-  const filtered = getFilteredEvents();
-  const sorted = filtered.sort((a, b) => b.timestamp - a.timestamp);
-  feedList.innerHTML = sorted.map(renderFeedItem).join('');
-  document.getElementById('feed-count').textContent = `${sorted.length} events`;
-}
-
-/* ============================================================
-   FILTERING
-   ============================================================ */
-function getFilteredEvents() {
-  return STATE.events.filter(evt => {
-    // Category filter
-    if (STATE.activeFilter !== 'all' && evt.category !== STATE.activeFilter) return false;
-    // Severity filter
-    if (STATE.severityFilter > 0 && evt.severity < STATE.severityFilter) return false;
-    // Search filter
-    if (STATE.searchQuery) {
-      const q = STATE.searchQuery.toLowerCase();
-      const searchable = `${evt.title} ${evt.location} ${evt.country} ${evt.category} ${evt.source}`.toLowerCase();
-      if (!searchable.includes(q)) return false;
-    }
-    return true;
-  });
-}
-
-function toggleFilter(filter) {
-  STATE.activeFilter = filter;
-  // Update UI
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.filter === filter);
-  });
-  applyFilters();
-}
-
-function applyFilters() {
-  STATE.severityFilter = parseInt(document.getElementById('severity-filter').value);
-  STATE.searchQuery = document.getElementById('search-input').value;
-  refreshFeed();
-  refreshMapMarkers();
-}
-
-/* ============================================================
-   DETAIL PANEL
-   ============================================================ */
-function openDetail(eventId) {
-  const event = STATE.events.find(e => e.id === eventId);
-  if (!event) return;
-
-  STATE.selectedEvent = event;
-  const body = document.getElementById('detail-body');
-  const sevColors = {5:'var(--accent-red)',4:'var(--accent-amber)',3:'var(--accent-amber)',2:'var(--accent-blue)',1:'var(--accent-green)'};
-
-  // Find related events (same region or category)
-  const related = STATE.events
-    .filter(e => e.id !== event.id && (e.region === event.region || e.category === event.category))
-    .slice(0, 4);
-
-  body.innerHTML = `
-    <div class="detail-section">
-      <span class="feed-item-cat ${event.category}" style="font-size:10px;display:inline-block;margin-bottom:12px;">
-        ${event.category.toUpperCase()}
-      </span>
-      <div class="detail-event-title">${event.title}</div>
-      <div class="detail-event-location">
-        <i class="fas fa-map-marker-alt"></i> ${event.location} &nbsp;|&nbsp; ${event.region}
-      </div>
-      <div class="detail-meta-grid">
-        <div class="detail-meta-card">
-          <label>Severity</label>
-          <div class="val" style="color:${sevColors[event.severity]}">
-            ${'●'.repeat(event.severity)}${'○'.repeat(5-event.severity)} Level ${event.severity}
-          </div>
-        </div>
-        <div class="detail-meta-card">
-          <label>Event ID</label>
-          <div class="val" style="font-family:var(--font-mono);font-size:13px;">${event.id}</div>
-        </div>
-        <div class="detail-meta-card">
-          <label>Source</label>
-          <div class="val">${event.source}</div>
-        </div>
-        <div class="detail-meta-card">
-          <label>Timestamp</label>
-          <div class="val" style="font-family:var(--font-mono);font-size:12px;">${formatTime(event.timestamp)}</div>
-        </div>
-        <div class="detail-meta-card">
-          <label>Coordinates</label>
-          <div class="val" style="font-family:var(--font-mono);font-size:12px;">${event.lat.toFixed(3)}°, ${event.lng.toFixed(3)}°</div>
-        </div>
-        <div class="detail-meta-card">
-          <label>Region</label>
-          <div class="val">${event.region}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="detail-section">
-      <div class="detail-section-title"><i class="fas fa-file-lines"></i> SITUATION REPORT</div>
-      <div class="detail-description">${event.description}</div>
-    </div>
-
-    <div class="detail-section">
-      <div class="detail-section-title"><i class="fas fa-brain"></i> AI INTELLIGENCE SUMMARY</div>
-      <div class="ai-summary-box">
-        <div class="ai-summary-header">
-          <i class="fas fa-microchip"></i> NEXUS AI Analysis
-        </div>
-        <div class="ai-summary-text" id="ai-summary-text"></div>
-      </div>
-    </div>
-
-    ${related.length > 0 ? `
-    <div class="detail-section">
-      <div class="detail-section-title"><i class="fas fa-link"></i> RELATED EVENTS (${related.length})</div>
-      <div class="related-events">
-        ${related.map(r => `
-          <div class="related-item" onclick="openDetail('${r.id}')">
-            <div class="ri-dot" style="background:${CATEGORY_COLORS[r.category]}"></div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                ${r.title}
-              </div>
-              <div style="font-size:10px;color:var(--text-muted)">${r.location} · ${timeAgo(r.timestamp)}</div>
-            </div>
-            <span class="feed-item-severity ${r.severity>=4?'sev-4':''}">SEV ${r.severity}</span>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-    ` : ''}
-  `;
-
-  // Animate AI summary typing
-  typeAISummary(event.aiSummary);
-
-  // Open panel
-  document.getElementById('detail-overlay').classList.add('open');
-  document.getElementById('detail-panel').classList.add('open');
-
-  // Center map on event
-  STATE.map.flyTo([event.lat, event.lng], 6, { duration: 1 });
-}
-
-function typeAISummary(text) {
-  const el = document.getElementById('ai-summary-text');
-  if (!el) return;
-  el.innerHTML = '<span class="ai-cursor"></span>';
-  let i = 0;
-  const interval = setInterval(() => {
-    if (i < text.length) {
-      el.innerHTML = text.substring(0, i + 1) + '<span class="ai-cursor"></span>';
-      i++;
-    } else {
-      clearInterval(interval);
-      // Remove cursor after a delay
-      setTimeout(() => {
-        const cursor = el.querySelector('.ai-cursor');
-        if (cursor) cursor.remove();
-      }, 2000);
-    }
-  }, 15);
-}
-
-function closeDetail() {
-  document.getElementById('detail-overlay').classList.remove('open');
-  document.getElementById('detail-panel').classList.remove('open');
-  STATE.selectedEvent = null;
-}
-
-/* ============================================================
-   BOOKMARKS
-   ============================================================ */
-function toggleBookmark(eventId) {
-  if (STATE.bookmarks.has(eventId)) {
-    STATE.bookmarks.delete(eventId);
-  } else {
-    STATE.bookmarks.add(eventId);
-  }
-  refreshFeed();
-}
-
-function bookmarkCurrent() {
-  if (STATE.selectedEvent) {
-    toggleBookmark(STATE.selectedEvent.id);
-    showToast({
-      title: STATE.bookmarks.has(STATE.selectedEvent.id) ? 'Bookmarked' : 'Removed',
-      msg: STATE.selectedEvent.title,
-      category: STATE.selectedEvent.category,
-    });
-  }
-}
-
-function shareCurrent() {
-  if (STATE.selectedEvent) {
-    // Simulate share by copying info
-    const text = `[NEXUS INTEL] ${STATE.selectedEvent.title} — ${STATE.selectedEvent.location} (SEV ${STATE.selectedEvent.severity})`;
-    navigator.clipboard?.writeText(text);
-    showToast({title:'Copied to clipboard', msg: text, category:'breaking'});
-  }
-}
-
-/* ============================================================
-   NOTIFICATIONS / TOASTS
-   ============================================================ */
-function showToast({title, msg, category}) {
-  const container = document.getElementById('toast-container');
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  const icon = CATEGORY_ICONS[category] || 'fa-bell';
-  toast.innerHTML = `
-    <div class="toast-icon ${category || ''}"><i class="fas ${icon}"></i></div>
-    <div class="toast-content">
-      <div class="toast-title">${title}</div>
-      <div class="toast-msg">${msg}</div>
-      <div class="toast-time">${new Date().toISOString().replace('T',' ').substring(0,19)} UTC</div>
-    </div>
-    <button class="toast-close" onclick="this.parentElement.classList.add('removing');setTimeout(()=>this.parentElement.remove(),300)">
-      <i class="fas fa-times"></i>
-    </button>
-  `;
-  container.prepend(toast);
-
-  // Auto dismiss
-  setTimeout(() => {
-    if (toast.parentElement) {
-      toast.classList.add('removing');
-      setTimeout(() => toast.remove(), 300);
-    }
-  }, CONFIG.TOAST_DURATION);
-
-  // Limit to 5 toasts
-  while (container.children.length > 5) {
-    container.lastChild.remove();
-  }
-}
-
-/* ============================================================
-   STATS & SPARKLINES
-   ============================================================ */
-function updateStats() {
-  const counts = {conflict:0, breaking:0, weather:0, economic:0, cyber:0, health:0};
-  const countries = new Set();
-  let critical = 0;
-
-  STATE.events.forEach(e => {
-    counts[e.category] = (counts[e.category] || 0) + 1;
-    countries.add(e.country);
-    if (e.severity >= 5) critical++;
-  });
-
-  // Header stats
-  document.getElementById('stat-total').textContent = STATE.events.length;
-  document.getElementById('stat-countries').textContent = countries.size;
-  document.getElementById('stat-critical').textContent = critical;
-
-  // Filter counts
-  document.getElementById('count-all').textContent = STATE.events.length;
-  document.getElementById('count-conflict').textContent = counts.conflict;
-  document.getElementById('count-breaking').textContent = counts.breaking;
-  document.getElementById('count-weather').textContent = counts.weather;
-  document.getElementById('count-economic').textContent = counts.economic;
-  document.getElementById('count-cyber').textContent = counts.cyber;
-
-  // Stats bar
-  document.getElementById('sbar-conflict').textContent = counts.conflict;
-  document.getElementById('sbar-breaking').textContent = counts.breaking;
-  document.getElementById('sbar-weather').textContent = counts.weather;
-  document.getElementById('sbar-economic').textContent = counts.economic;
-  document.getElementById('sbar-cyber').textContent = counts.cyber;
-
-  // Update sparkline data
-  ['conflict','breaking','weather','economic','cyber'].forEach(cat => {
-    STATE.sparkData[cat].push(counts[cat]);
-    if (STATE.sparkData[cat].length > CONFIG.SPARKLINE_POINTS) {
-      STATE.sparkData[cat].shift();
-    }
-    drawSparkline(`spark-${cat}`, STATE.sparkData[cat], CATEGORY_COLORS[cat]);
-  });
-
-  // Activity bars
-  updateActivityBars();
-
-  // Threat level
-  updateThreatLevel(critical, STATE.events.length);
-}
-
-function drawSparkline(canvasId, data, color) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas || data.length < 2) return;
-
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width;
-  const h = canvas.height;
-  const padding = 2;
-
-  ctx.clearRect(0, 0, w, h);
-
-  const max = Math.max(...data, 1);
-  const min = 0;
-  const range = max - min || 1;
-  const step = (w - padding * 2) / (data.length - 1);
-
-  // Draw line
-  ctx.beginPath();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1.5;
-  ctx.lineJoin = 'round';
-
-  data.forEach((val, i) => {
-    const x = padding + i * step;
-    const y = h - padding - ((val - min) / range) * (h - padding * 2);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-
-  // Fill gradient
-  const lastX = padding + (data.length - 1) * step;
-  const lastY = h - padding - ((data[data.length - 1] - min) / range) * (h - padding * 2);
-  ctx.lineTo(lastX, h);
-  ctx.lineTo(padding, h);
-  ctx.closePath();
-
-  const gradient = ctx.createLinearGradient(0, 0, 0, h);
-  gradient.addColorStop(0, color + '33');
-  gradient.addColorStop(1, color + '00');
-  ctx.fillStyle = gradient;
-  ctx.fill();
-
-  // End dot
-  ctx.beginPath();
-  ctx.arc(lastX, lastY, 2, 0, Math.PI * 2);
-  ctx.fillStyle = color;
-  ctx.fill();
-}
-
-function updateActivityBars() {
-  const container = document.getElementById('activity-bars');
-  if (!container.children.length) {
-    for (let i = 0; i < 12; i++) {
-      const span = document.createElement('span');
-      container.appendChild(span);
-    }
-  }
-  Array.from(container.children).forEach(bar => {
-    bar.style.height = (3 + Math.random() * 17) + 'px';
-  });
-}
-
-function updateThreatLevel(critical, total) {
-  const el = document.getElementById('threat-level');
-  const textEl = document.getElementById('threat-text');
-  const ratio = total > 0 ? critical / total : 0;
-
-  el.classList.remove('elevated','high','severe','guarded');
-  if (ratio > 0.15 || critical > 8) {
-    textEl.textContent = 'SEVERE'; el.classList.add('severe');
-    el.style.borderColor = 'rgba(255,45,85,0.3)'; el.style.background = 'rgba(255,45,85,0.08)';
-    el.style.color = 'var(--accent-red)';
-    el.querySelector('.tl-dot').style.background = 'var(--accent-red)';
-  } else if (ratio > 0.08 || critical > 4) {
-    textEl.textContent = 'HIGH'; el.classList.add('high');
-    el.style.borderColor = 'rgba(255,107,53,0.3)'; el.style.background = 'rgba(255,107,53,0.08)';
-    el.style.color = 'var(--accent-orange)';
-    el.querySelector('.tl-dot').style.background = 'var(--accent-orange)';
-  } else {
-    textEl.textContent = 'ELEVATED'; el.classList.add('elevated');
-    el.style.borderColor = 'rgba(255,180,0,0.3)'; el.style.background = 'rgba(255,180,0,0.08)';
-    el.style.color = 'var(--accent-amber)';
-    el.querySelector('.tl-dot').style.background = 'var(--accent-amber)';
-  }
-}
-
-/* ============================================================
-   UTILITY FUNCTIONS
-   ============================================================ */
 function timeAgo(date) {
-  const seconds = Math.floor((new Date() - date) / 1000);
-  if (seconds < 10) return 'just now';
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  var seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 10) return GU.justNow;
+  if (seconds < 60) return GU.secAgo(GU.toGuNum(seconds));
+  var minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return GU.minAgo(GU.toGuNum(minutes));
+  var hours = Math.floor(minutes / 60);
+  if (hours < 24) return GU.hrAgo(GU.toGuNum(hours));
+  return GU.dayAgo(GU.toGuNum(Math.floor(hours / 24)));
 }
 
 function formatTime(date) {
   return date.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
 }
 
-function updateClock() {
-  const now = new Date();
-  const h = String(now.getUTCHours()).padStart(2,'0');
-  const m = String(now.getUTCMinutes()).padStart(2,'0');
-  const s = String(now.getUTCSeconds()).padStart(2,'0');
-  document.getElementById('clock-time').textContent = `${h}:${m}:${s}`;
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
-/* ============================================================
-   MOBILE FEED TOGGLE
-   ============================================================ */
-function toggleMobileFeed() {
-  document.getElementById('feed-panel').classList.toggle('mobile-open');
+/* ===========================================================
+   MAP INIT
+   =========================================================== */
+function initMap() {
+  try {
+    STATE.map = L.map('map', {
+      center: CONFIG.MAP_CENTER, zoom: CONFIG.MAP_ZOOM,
+      zoomControl: true, attributionControl: false,
+      minZoom: 2, maxZoom: 14, worldCopyJump: true, preferCanvas: true
+    });
+    L.tileLayer(CONFIG.TILE_URL, { subdomains:'abcd', maxZoom:19 }).addTo(STATE.map);
+    STATE.map.zoomControl.setPosition('topleft');
+    STATE.markerLayer = L.layerGroup().addTo(STATE.map);
+    setTimeout(function(){ STATE.map.invalidateSize(); }, 100);
+  } catch(e) { console.error('Map init error:', e); }
 }
 
-/* ============================================================
-   REAL-TIME UPDATE ENGINE
-   ============================================================ */
-function addNewEvent() {
-  const event = generateEvent();
-  STATE.events.unshift(event);
-
-  // Enforce max events limit
-  while (STATE.events.length > CONFIG.MAX_EVENTS) {
-    const removed = STATE.events.pop();
-    removeMarker(removed.id);
+/* ===========================================================
+   EVENT GENERATION
+   =========================================================== */
+function generateEvent(category) {
+  if (!category) {
+    var cats = ['conflict','breaking','weather','economic','cyber','health'];
+    var weights = [20,25,20,15,12,8];
+    var total = 0;
+    for (var w = 0; w < weights.length; w++) total += weights[w];
+    var r = Math.random() * total;
+    for (var j = 0; j < cats.length; j++) { r -= weights[j]; if (r <= 0) { category = cats[j]; break; } }
+    if (!category) category = 'breaking';
   }
 
-  // Update UI
+  var loc = pickRandom(LOCATIONS);
+  var templates = EVENT_TEMPLATES[category];
+  if (!templates || templates.length === 0) { templates = EVENT_TEMPLATES.breaking; category = 'breaking'; }
+  var template = pickRandom(templates);
+  var severity = template.s[Math.floor(Math.random() * template.s.length)];
+  var latOff = (Math.random() - 0.5) * 2;
+  var lngOff = (Math.random() - 0.5) * 2;
+  var title = template.t.replace('{loc}', loc.city).replace('{country}', loc.country);
+
+  return {
+    id: generateEventId(), title: title, description: template.d,
+    category: category, severity: severity,
+    lat: loc.lat + latOff, lng: loc.lng + lngOff,
+    city: loc.city, country: loc.country, region: loc.region,
+    location: loc.city + ', ' + loc.country,
+    source: pickRandom(SOURCES), timestamp: new Date(),
+    aiSummary: generateAISummary(category, severity, loc)
+  };
+}
+
+function generateAISummary(category, severity, loc) {
+  var risk = severity >= 4 ? 'ઉચ્ચ જોખમ' : severity >= 3 ? 'મધ્યમ જોખમ' : 'ઓછું જોખમ';
+  var catName = GU.catNames[category] || category;
+  var summaries = [
+    '[' + risk + '] ' + loc.region + 'માં આ ' + catName + ' ઘટના પર ધ્યાન આપવું જરૂરી છે. ' + loc.country + ' વિસ્તારના મુખ્ય હિતધારકોએ ઘટનાક્રમ પર નજીકથી દેખરેખ રાખવી જોઈએ. પ્રદેશમાં ઐતિહાસિક પેટર્ન આધારે વૃદ્ધિની સંભાવના છે. સંબંધિત ગુપ્તચર સ્ટ્રીમ્સની ઉન્નત દેખરેખની ભલામણ.',
+    '[' + risk + '] પટેલ AI આ પરિસ્થિતિને પ્રાદેશિક સ્થિરતા માટે નોંધપાત્ર ગણે છે. ' + loc.city + 'માં આ ઘટના છેલ્લા ૩૦ દિવસમાં સમાન ઘટનાઓની પેટર્ન અનુસરે છે. OSINT ફીડ્સ સાથે ક્રોસ-રેફરન્સિંગ વ્યાપક ભૌગોલિક-રાજકીય ગતિશીલતા સાથે શક્ય જોડાણ દર્શાવે છે.',
+    '[' + risk + '] વિશ્લેષણ દર્શાવે છે કે આ ઘટના ' + loc.country + ' અને પડોશી પ્રદેશોમાં કામગીરીને અસર કરી શકે છે. ઐતિહાસિક ડેટા, વર્તમાન ભૌગોલિક-રાજકીય સંદર્ભ અને સ્ત્રોત વિશ્વસનીયતા સ્કોરિંગ સહિત અનેક સૂચકાંકો પર આધારિત તીવ્રતા મૂલ્યાંકન.'
+  ];
+  return pickRandom(summaries);
+}
+
+/* ===========================================================
+   MARKERS
+   =========================================================== */
+function addMarkerToMap(event) {
+  if (!STATE.map || !STATE.markerLayer) return;
+  var sizeClass = 'sz-' + Math.min(event.severity, 5);
+  var dotSize = event.severity >= 5 ? 20 : event.severity >= 4 ? 17 : event.severity >= 3 ? 14 : 12;
+  var html = '<div class="event-marker" data-eid="' + event.id + '">' +
+    '<div class="marker-dot ' + event.category + ' ' + sizeClass + '"></div></div>';
+  var icon = L.divIcon({
+    html: html, className: 'leaflet-marker-custom',
+    iconSize: [dotSize+12, dotSize+12], iconAnchor: [(dotSize+12)/2, (dotSize+12)/2]
+  });
+  var marker = L.marker([event.lat, event.lng], { icon: icon });
+  (function(eid) {
+    marker.on('click', function(e) { L.DomEvent.stopPropagation(e); openDetail(eid); });
+  })(event.id);
+  marker.bindTooltip(
+    '<strong style="font-family:\'Noto Sans Gujarati\',sans-serif">' + escapeHtml(event.title) + '</strong><br>' +
+    '<span style="color:#8b99b0;font-family:\'Noto Sans Gujarati\',sans-serif">' + escapeHtml(event.location) + '</span>',
+    { className:'custom-tooltip', direction:'top', offset:[0,-10], opacity:0.95 }
+  );
+  marker.addTo(STATE.markerLayer);
+  STATE.markers[event.id] = marker;
+}
+
+function clearAllMarkers() {
+  if (STATE.markerLayer) STATE.markerLayer.clearLayers();
+  STATE.markers = {};
+}
+
+function refreshMapMarkers() {
+  clearAllMarkers();
+  var filtered = getFilteredEvents();
+  for (var i = 0; i < filtered.length; i++) addMarkerToMap(filtered[i]);
+  var count = Object.keys(STATE.markers).length;
+  document.getElementById('marker-count').textContent = GU.toGuNum(count) + ' ' + GU.markers;
+}
+
+/* ===========================================================
+   FILTERING
+   =========================================================== */
+function getFilteredEvents() {
+  var results = [];
+  for (var i = 0; i < STATE.events.length; i++) {
+    var evt = STATE.events[i];
+    if (STATE.activeFilter !== 'all' && evt.category !== STATE.activeFilter) continue;
+    if (STATE.severityFilter > 0 && evt.severity < STATE.severityFilter) continue;
+    if (STATE.searchQuery) {
+      var q = STATE.searchQuery.toLowerCase();
+      var searchable = (evt.title + ' ' + evt.location + ' ' + evt.country + ' ' + evt.category + ' ' + evt.source).toLowerCase();
+      if (searchable.indexOf(q) === -1) continue;
+    }
+    results.push(evt);
+  }
+  return results;
+}
+
+function handleFilter(btn, filter) {
+  STATE.activeFilter = filter;
+  var btns = document.querySelectorAll('.filter-btn');
+  for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  STATE.severityFilter = parseInt(document.getElementById('severity-filter').value, 10) || 0;
+  STATE.searchQuery = document.getElementById('search-input').value || '';
   refreshFeed();
   refreshMapMarkers();
-  updateStats();
+}
 
-  // Show notification for high severity events
-  if (event.severity >= 4) {
+/* ===========================================================
+   FEED
+   =========================================================== */
+function renderFeedItem(event) {
+  var ago = timeAgo(event.timestamp);
+  var sevClass = event.severity >= 5 ? 'sev-5' : event.severity >= 4 ? 'sev-4' : '';
+  var critClass = event.severity >= 5 ? 'critical' : 'unread';
+  var bmActive = STATE.bookmarks[event.id] ? 'active' : '';
+  var bmIcon = STATE.bookmarks[event.id] ? 'fas' : 'far';
+  var catLabel = GU.catNames[event.category] || event.category;
+
+  return '<div class="feed-item ' + critClass + '" data-id="' + event.id + '" onclick="openDetail(\'' + event.id + '\')">' +
+    '<button class="feed-item-bookmark ' + bmActive + '" onclick="event.stopPropagation();toggleBookmark(\'' + event.id + '\')">' +
+    '<i class="' + bmIcon + ' fa-bookmark"></i></button>' +
+    '<div class="feed-item-header">' +
+    '<span class="feed-item-cat ' + event.category + '">' + catLabel + '</span>' +
+    '<span class="feed-item-severity ' + sevClass + '">' + GU.sev + ' ' + GU.toGuNum(event.severity) + '</span></div>' +
+    '<div class="feed-item-title">' + escapeHtml(event.title) + '</div>' +
+    '<div class="feed-item-meta">' +
+    '<span><i class="fas fa-map-pin"></i> ' + escapeHtml(event.location) + '</span>' +
+    '<span><i class="far fa-clock"></i> ' + ago + '</span>' +
+    '<span><i class="fas fa-rss"></i> ' + escapeHtml(event.source) + '</span></div></div>';
+}
+
+function refreshFeed() {
+  var feedList = document.getElementById('feed-list');
+  var filtered = getFilteredEvents();
+  filtered.sort(function(a, b) { return b.timestamp.getTime() - a.timestamp.getTime(); });
+  var html = '';
+  for (var i = 0; i < filtered.length; i++) html += renderFeedItem(filtered[i]);
+  feedList.innerHTML = html;
+  document.getElementById('feed-count').textContent = GU.toGuNum(filtered.length) + ' ' + GU.events;
+}
+
+/* ===========================================================
+   DETAIL PANEL
+   =========================================================== */
+function openDetail(eventId) {
+  var event = null;
+  for (var i = 0; i < STATE.events.length; i++) {
+    if (STATE.events[i].id === eventId) { event = STATE.events[i]; break; }
+  }
+  if (!event) return;
+  if (STATE.aiTypingInterval) { clearInterval(STATE.aiTypingInterval); STATE.aiTypingInterval = null; }
+  STATE.selectedEvent = event;
+  STATE.detailOpen = true;
+
+  var sevColors = {5:'var(--accent-red)',4:'var(--accent-amber)',3:'var(--accent-amber)',2:'var(--accent-blue)',1:'var(--accent-green)'};
+  var sevColor = sevColors[event.severity] || 'var(--text-primary)';
+  var sevDots = '';
+  for (var s = 0; s < 5; s++) sevDots += s < event.severity ? '●' : '○';
+
+  var catLabel = GU.catNames[event.category] || event.category;
+
+  var related = [];
+  for (var r = 0; r < STATE.events.length; r++) {
+    var e = STATE.events[r];
+    if (e.id !== event.id && (e.region === event.region || e.category === event.category)) {
+      related.push(e);
+      if (related.length >= 4) break;
+    }
+  }
+
+  var relatedHtml = '';
+  if (related.length > 0) {
+    relatedHtml = '<div class="detail-section">' +
+      '<div class="detail-section-title"><i class="fas fa-link"></i> ' + GU.relatedEvents + ' (' + GU.toGuNum(related.length) + ')</div>' +
+      '<div class="related-events">';
+    for (var ri = 0; ri < related.length; ri++) {
+      var rel = related[ri];
+      var dotColor = CATEGORY_COLORS[rel.category] || '#888';
+      relatedHtml += '<div class="related-item" onclick="openDetail(\'' + rel.id + '\')">' +
+        '<div class="ri-dot" style="background:' + dotColor + '"></div>' +
+        '<div class="related-item-text">' +
+        '<div class="related-item-title">' + escapeHtml(rel.title) + '</div>' +
+        '<div class="related-item-sub">' + escapeHtml(rel.location) + ' · ' + timeAgo(rel.timestamp) + '</div></div>' +
+        '<span class="feed-item-severity ' + (rel.severity>=4?'sev-4':'') + '">' + GU.sev + ' ' + GU.toGuNum(rel.severity) + '</span></div>';
+    }
+    relatedHtml += '</div></div>';
+  }
+
+  var body = document.getElementById('detail-body');
+  body.innerHTML = '<div class="detail-section">' +
+    '<span class="feed-item-cat ' + event.category + '" style="font-size:10px;display:inline-block;margin-bottom:12px;">' + catLabel + '</span>' +
+    '<div class="detail-event-title">' + escapeHtml(event.title) + '</div>' +
+    '<div class="detail-event-location"><i class="fas fa-map-marker-alt"></i> ' + escapeHtml(event.location) + ' &nbsp;|&nbsp; ' + escapeHtml(event.region) + '</div>' +
+    '<div class="detail-meta-grid">' +
+    '<div class="detail-meta-card"><label>' + GU.sev + '</label><div class="val" style="color:' + sevColor + '">' + sevDots + ' ' + GU.sevLevel(GU.toGuNum(event.severity)) + '</div></div>' +
+    '<div class="detail-meta-card"><label>' + GU.eventId + '</label><div class="val" style="font-family:var(--font-mono);font-size:13px;">' + event.id + '</div></div>' +
+    '<div class="detail-meta-card"><label>' + GU.source + '</label><div class="val">' + escapeHtml(event.source) + '</div></div>' +
+    '<div class="detail-meta-card"><label>' + GU.timestamp + '</label><div class="val" style="font-family:var(--font-mono);font-size:12px;">' + formatTime(event.timestamp) + '</div></div>' +
+    '<div class="detail-meta-card"><label>' + GU.coordinates + '</label><div class="val" style="font-family:var(--font-mono);font-size:12px;">' + event.lat.toFixed(3) + '&deg;, ' + event.lng.toFixed(3) + '&deg;</div></div>' +
+    '<div class="detail-meta-card"><label>' + GU.region + '</label><div class="val">' + escapeHtml(event.region) + '</div></div></div></div>' +
+    '<div class="detail-section"><div class="detail-section-title"><i class="fas fa-file-lines"></i> ' + GU.situationReport + '</div>' +
+    '<div class="detail-description">' + escapeHtml(event.description) + '</div></div>' +
+    '<div class="detail-section"><div class="detail-section-title"><i class="fas fa-brain"></i> ' + GU.aiSummary + '</div>' +
+    '<div class="ai-summary-box"><div class="ai-summary-header"><i class="fas fa-microchip"></i> ' + GU.aiAnalysis + '</div>' +
+    '<div class="ai-summary-text" id="ai-summary-text"><span class="ai-cursor"></span></div></div></div>' +
+    relatedHtml;
+
+  body.scrollTop = 0;
+  document.getElementById('detail-overlay').classList.add('open');
+  document.getElementById('detail-panel').classList.add('open');
+  startAITyping(event.aiSummary);
+
+  try { STATE.map.flyTo([event.lat, event.lng], Math.max(STATE.map.getZoom(), 5), { duration: 0.8 }); } catch(e) {}
+}
+
+function startAITyping(text) {
+  var el = document.getElementById('ai-summary-text');
+  if (!el) return;
+  var i = 0;
+  el.innerHTML = '<span class="ai-cursor"></span>';
+  STATE.aiTypingInterval = setInterval(function() {
+    if (i < text.length) {
+      el.innerHTML = escapeHtml(text.substring(0, i + 1)) + '<span class="ai-cursor"></span>';
+      i++;
+    } else {
+      clearInterval(STATE.aiTypingInterval);
+      STATE.aiTypingInterval = null;
+      setTimeout(function() {
+        var cursor = el.querySelector('.ai-cursor');
+        if (cursor) cursor.style.display = 'none';
+      }, 2000);
+    }
+  }, 18);
+}
+
+function closeDetail() {
+  if (STATE.aiTypingInterval) { clearInterval(STATE.aiTypingInterval); STATE.aiTypingInterval = null; }
+  STATE.detailOpen = false;
+  STATE.selectedEvent = null;
+  document.getElementById('detail-overlay').classList.remove('open');
+  document.getElementById('detail-panel').classList.remove('open');
+}
+
+document.getElementById('detail-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeDetail();
+});
+
+/* ===========================================================
+   BOOKMARKS
+   =========================================================== */
+function toggleBookmark(eventId) {
+  if (STATE.bookmarks[eventId]) delete STATE.bookmarks[eventId];
+  else STATE.bookmarks[eventId] = true;
+  refreshFeed();
+}
+
+function bookmarkCurrent() {
+  if (STATE.selectedEvent) {
+    toggleBookmark(STATE.selectedEvent.id);
+    var isBookmarked = !!STATE.bookmarks[STATE.selectedEvent.id];
     showToast({
-      title: `${event.category.toUpperCase()} ALERT — SEV ${event.severity}`,
-      msg: event.title,
-      category: event.category,
+      title: isBookmarked ? GU.bookmarked : GU.removed,
+      msg: STATE.selectedEvent.title,
+      category: STATE.selectedEvent.category
+    });
+  }
+}
+
+function shareCurrent() {
+  if (STATE.selectedEvent) {
+    var text = '[પટેલ ગુપ્તચર] ' + STATE.selectedEvent.title + ' — ' + STATE.selectedEvent.location + ' (' + GU.sev + ' ' + GU.toGuNum(STATE.selectedEvent.severity) + ')';
+    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text); } catch(e) {}
+    showToast({ title: GU.copied, msg: text, category:'breaking' });
+  }
+}
+
+/* ===========================================================
+   TOASTS
+   =========================================================== */
+function showToast(opts) {
+  var container = document.getElementById('toast-container');
+  var toast = document.createElement('div');
+  toast.className = 'toast';
+  var iconClass = CATEGORY_ICONS[opts.category] || 'fa-bell';
+  toast.innerHTML = '<div class="toast-icon ' + (opts.category || '') + '"><i class="fas ' + iconClass + '"></i></div>' +
+    '<div class="toast-content"><div class="toast-title">' + escapeHtml(opts.title) + '</div>' +
+    '<div class="toast-msg">' + escapeHtml(opts.msg) + '</div>' +
+    '<div class="toast-time">' + new Date().toISOString().replace('T',' ').substring(0,19) + ' UTC</div></div>' +
+    '<button class="toast-close-btn"><i class="fas fa-times"></i></button>';
+  var closeBtn = toast.querySelector('.toast-close-btn');
+  closeBtn.addEventListener('click', function(e) { e.stopPropagation(); dismissToast(toast); });
+  container.insertBefore(toast, container.firstChild);
+  var timer = setTimeout(function() { dismissToast(toast); }, CONFIG.TOAST_DURATION);
+  toast._timer = timer;
+  while (container.children.length > 4) {
+    var last = container.lastChild;
+    if (last._timer) clearTimeout(last._timer);
+    container.removeChild(last);
+  }
+}
+
+function dismissToast(toast) {
+  if (!toast || !toast.parentElement) return;
+  toast.classList.add('removing');
+  setTimeout(function() { if (toast.parentElement) toast.parentElement.removeChild(toast); }, 300);
+}
+
+/* ===========================================================
+   STATS & SPARKLINES
+   =========================================================== */
+function updateStats() {
+  var counts = {conflict:0, breaking:0, weather:0, economic:0, cyber:0, health:0};
+  var countries = {};
+  var critical = 0;
+  for (var i = 0; i < STATE.events.length; i++) {
+    var e = STATE.events[i];
+    counts[e.category] = (counts[e.category] || 0) + 1;
+    countries[e.country] = true;
+    if (e.severity >= 5) critical++;
+  }
+  var countryCount = Object.keys(countries).length;
+
+  document.getElementById('stat-total').textContent = STATE.events.length;
+  document.getElementById('stat-countries').textContent = countryCount;
+  document.getElementById('stat-critical').textContent = critical;
+  document.getElementById('count-all').textContent = STATE.events.length;
+  document.getElementById('count-conflict').textContent = counts.conflict;
+  document.getElementById('count-breaking').textContent = counts.breaking;
+  document.getElementById('count-weather').textContent = counts.weather;
+  document.getElementById('count-economic').textContent = counts.economic;
+  document.getElementById('count-cyber').textContent = counts.cyber;
+  document.getElementById('sbar-conflict').textContent = counts.conflict;
+  document.getElementById('sbar-breaking').textContent = counts.breaking;
+  document.getElementById('sbar-weather').textContent = counts.weather;
+  document.getElementById('sbar-economic').textContent = counts.economic;
+  document.getElementById('sbar-cyber').textContent = counts.cyber;
+
+  var sparkCats = ['conflict','breaking','weather','economic','cyber'];
+  for (var sc = 0; sc < sparkCats.length; sc++) {
+    var cat = sparkCats[sc];
+    STATE.sparkData[cat].push(counts[cat]);
+    if (STATE.sparkData[cat].length > CONFIG.SPARKLINE_POINTS) STATE.sparkData[cat].shift();
+    drawSparkline('spark-' + cat, STATE.sparkData[cat], CATEGORY_COLORS[cat]);
+  }
+  updateActivityBars();
+  updateThreatLevel(critical, STATE.events.length);
+}
+
+function drawSparkline(canvasId, data, color) {
+  var canvas = document.getElementById(canvasId);
+  if (!canvas || data.length < 2) return;
+  var ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  var w = canvas.width, h = canvas.height, pad = 2;
+  ctx.clearRect(0, 0, w, h);
+  var max = 1;
+  for (var m = 0; m < data.length; m++) if (data[m] > max) max = data[m];
+  var step = (w - pad * 2) / (data.length - 1);
+  ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  for (var i = 0; i < data.length; i++) {
+    var x = pad + i * step;
+    var y = h - pad - (data[i] / max) * (h - pad * 2);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  var lastX = pad + (data.length - 1) * step;
+  var lastY = h - pad - (data[data.length - 1] / max) * (h - pad * 2);
+  ctx.lineTo(lastX, h); ctx.lineTo(pad, h); ctx.closePath();
+  var gradient = ctx.createLinearGradient(0, 0, 0, h);
+  gradient.addColorStop(0, color + '33'); gradient.addColorStop(1, color + '00');
+  ctx.fillStyle = gradient; ctx.fill();
+  ctx.beginPath(); ctx.arc(lastX, lastY, 2, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill();
+}
+
+function updateActivityBars() {
+  var container = document.getElementById('activity-bars');
+  if (container.children.length === 0) {
+    for (var i = 0; i < 12; i++) { var span = document.createElement('span'); span.style.height = '3px'; container.appendChild(span); }
+  }
+  for (var b = 0; b < container.children.length; b++) container.children[b].style.height = (3 + Math.random() * 17) + 'px';
+}
+
+function updateThreatLevel(critical, total) {
+  var el = document.getElementById('threat-level');
+  var textEl = document.getElementById('threat-text');
+  var dot = el.querySelector('.tl-dot');
+  var ratio = total > 0 ? critical / total : 0;
+  if (ratio > 0.15 || critical > 8) {
+    textEl.textContent = GU.threatSevere;
+    el.style.borderColor = 'rgba(255,45,85,0.3)'; el.style.background = 'rgba(255,45,85,0.08)';
+    el.style.color = 'var(--accent-red)'; dot.style.background = 'var(--accent-red)';
+  } else if (ratio > 0.08 || critical > 4) {
+    textEl.textContent = GU.threatHigh;
+    el.style.borderColor = 'rgba(255,107,53,0.3)'; el.style.background = 'rgba(255,107,53,0.08)';
+    el.style.color = 'var(--accent-orange)'; dot.style.background = 'var(--accent-orange)';
+  } else {
+    textEl.textContent = GU.threatElevated;
+    el.style.borderColor = 'rgba(255,180,0,0.3)'; el.style.background = 'rgba(255,180,0,0.08)';
+    el.style.color = 'var(--accent-amber)'; dot.style.background = 'var(--accent-amber)';
+  }
+}
+
+/* ===========================================================
+   CLOCK
+   =========================================================== */
+function updateClock() {
+  var now = new Date();
+  var h = now.getUTCHours(), m = now.getUTCMinutes(), s = now.getUTCSeconds();
+  h = h < 10 ? '0' + h : '' + h;
+  m = m < 10 ? '0' + m : '' + m;
+  s = s < 10 ? '0' + s : '' + s;
+  document.getElementById('clock-time').textContent = h + ':' + m + ':' + s;
+}
+
+/* ===========================================================
+   MOBILE
+   =========================================================== */
+function openMobileFeed() { document.getElementById('feed-panel').classList.add('mobile-open'); }
+function closeMobileFeed() { document.getElementById('feed-panel').classList.remove('mobile-open'); }
+
+/* ===========================================================
+   REAL-TIME
+   =========================================================== */
+function addNewEvent() {
+  var event = generateEvent();
+  STATE.events.unshift(event);
+  while (STATE.events.length > CONFIG.MAX_EVENTS) {
+    var removed = STATE.events.pop();
+    if (STATE.markers[removed.id]) { STATE.markerLayer.removeLayer(STATE.markers[removed.id]); delete STATE.markers[removed.id]; }
+  }
+  refreshFeed(); refreshMapMarkers(); updateStats();
+  if (event.severity >= 4) {
+    var catLabel = GU.catNames[event.category] || event.category;
+    showToast({
+      title: catLabel + ' ' + GU.alert + ' — ' + GU.sev + ' ' + GU.toGuNum(event.severity),
+      msg: event.title, category: event.category
     });
   }
 }
 
 function startRealTimeUpdates() {
-  // Add new events periodically
-  setInterval(() => {
-    addNewEvent();
-  }, CONFIG.UPDATE_INTERVAL);
-
-  // Refresh timestamps in feed every 30 seconds
-  setInterval(() => {
-    refreshFeed();
-  }, 30000);
-
-  // Update clock every second
-  setInterval(updateClock, 1000);
-  updateClock();
-
-  // Activity bars animation
+  setInterval(function() { addNewEvent(); }, CONFIG.UPDATE_INTERVAL);
+  setInterval(function() { refreshFeed(); }, 30000);
+  setInterval(updateClock, 1000); updateClock();
   setInterval(updateActivityBars, 2000);
 }
 
-/* ============================================================
-   APPLICATION INITIALIZATION
-   ============================================================ */
-function initApp() {
-  // Initialize the map
-  initMap();
+/* ===========================================================
+   TOOLTIP STYLE
+   =========================================================== */
+function injectTooltipStyles() {
+  var style = document.createElement('style');
+  style.textContent = '.custom-tooltip{background:rgba(12,18,32,0.95)!important;' +
+    'border:1px solid rgba(255,255,255,0.1)!important;border-radius:8px!important;' +
+    'color:#e8edf5!important;font-family:"Noto Sans Gujarati","Inter",sans-serif!important;font-size:11px!important;' +
+    'padding:8px 12px!important;box-shadow:0 8px 32px rgba(0,0,0,0.5)!important;' +
+    'max-width:300px!important;line-height:1.5!important;}' +
+    '.custom-tooltip .leaflet-tooltip-arrow{display:none!important;}' +
+    '.leaflet-marker-custom{background:none!important;border:none!important;}';
+  document.head.appendChild(style);
+}
 
-  // Generate initial events
-  for (let i = 0; i < 35; i++) {
-    const event = generateEvent();
-    // Stagger timestamps for realistic look
+/* ===========================================================
+   INIT
+   =========================================================== */
+function initApp() {
+  injectTooltipStyles();
+  initMap();
+  for (var i = 0; i < 35; i++) {
+    var event = generateEvent();
     event.timestamp = new Date(Date.now() - Math.random() * 3600000 * 4);
     STATE.events.push(event);
   }
-
-  // Sort by timestamp (newest first)
-  STATE.events.sort((a, b) => b.timestamp - a.timestamp);
-
-  // Initial render
-  refreshFeed();
-  refreshMapMarkers();
-  updateStats();
-
-  // Start real-time updates
+  STATE.events.sort(function(a, b) { return b.timestamp.getTime() - a.timestamp.getTime(); });
+  refreshFeed(); refreshMapMarkers(); updateStats();
   startRealTimeUpdates();
-
-  // Keyboard shortcut: Escape closes detail panel
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeDetail();
+  document.addEventListener('keydown', function(e) {
+    if ((e.key === 'Escape' || e.keyCode === 27) && STATE.detailOpen) closeDetail();
   });
-
-  console.log('%c[NEXUS] System initialized successfully', 'color:#00d4ff;font-weight:bold');
+  window.addEventListener('resize', function() {
+    if (STATE.map) setTimeout(function() { STATE.map.invalidateSize(); }, 150);
+  });
 }
 
-/* ============================================================
-   START BOOT ON PAGE LOAD
-   ============================================================ */
+/* START */
 window.addEventListener('DOMContentLoaded', runBootSequence);
+if (document.readyState !== 'loading') runBootSequence();
 </script>
 </body>
 </html>
