@@ -1,0 +1,1859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PATEL • Global Real-Time Intelligence Dashboard</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+:root {
+  --bg-primary: #060a13;
+  --bg-secondary: #0c1220;
+  --bg-surface: #111b2e;
+  --bg-glass: rgba(12,18,32,0.92);
+  --bg-glass-light: rgba(20,30,55,0.65);
+  --accent-cyan: #00d4ff;
+  --accent-red: #ff2d55;
+  --accent-amber: #ffb400;
+  --accent-blue: #3b82f6;
+  --accent-green: #00e676;
+  --accent-purple: #a855f7;
+  --accent-orange: #ff6b35;
+  --text-primary: #e8edf5;
+  --text-secondary: #8b99b0;
+  --text-muted: #4a5568;
+  --border-color: rgba(255,255,255,0.06);
+  --border-glow: rgba(0,212,255,0.15);
+  --shadow-lg: 0 25px 50px rgba(0,0,0,0.5);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  --header-h: 56px;
+  --filter-h: 48px;
+  --stats-h: 52px;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:10px; }
+::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.2); }
+
+/* ===== BOOT SCREEN ===== */
+#boot-screen {
+  position:fixed; inset:0; z-index:10000;
+  background: var(--bg-primary);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+#boot-screen.hidden { opacity:0; visibility:hidden; pointer-events:none; }
+#boot-screen::before {
+  content:''; position:absolute; inset:0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,212,255,0.015) 2px, rgba(0,212,255,0.015) 4px);
+  pointer-events:none;
+}
+
+.boot-logo {
+  font-family: var(--font-mono); font-size:42px; font-weight:700;
+  color: var(--accent-cyan); letter-spacing:12px;
+  text-shadow: 0 0 40px rgba(0,212,255,0.5), 0 0 80px rgba(0,212,255,0.2);
+  margin-bottom:40px; position:relative;
+}
+.boot-logo::after {
+  content:'INTELLIGENCE PLATFORM'; display:block;
+  font-size:11px; letter-spacing:8px; color:var(--text-muted);
+  text-shadow:none; margin-top:8px; text-align:center;
+}
+
+#boot-messages {
+  font-family:var(--font-mono); font-size:12px;
+  color:var(--accent-green); width:480px; max-width:90vw;
+  min-height:180px; overflow-y:auto;
+}
+#boot-messages .msg {
+  opacity:0; transform:translateY(5px);
+  animation: msgIn 0.3s forwards;
+  margin-bottom:4px; line-height:1.7;
+}
+#boot-messages .msg::before { content:'› '; color:var(--text-muted); }
+#boot-messages .msg.error { color:var(--accent-amber); }
+#boot-messages .msg.success { color:var(--accent-cyan); }
+@keyframes msgIn { to{opacity:1;transform:translateY(0)} }
+
+#boot-progress {
+  width:480px; max-width:90vw; height:2px;
+  background:rgba(255,255,255,0.05); margin-top:24px;
+  border-radius:2px; overflow:hidden;
+}
+#boot-progress-bar {
+  height:100%; width:0;
+  background: linear-gradient(90deg,var(--accent-cyan),var(--accent-green));
+  transition: width 0.3s ease; border-radius:2px;
+  box-shadow: 0 0 12px var(--accent-cyan);
+}
+
+/* ===== MAIN APP ===== */
+#app {
+  display:none; height:100vh; width:100vw;
+  flex-direction:column; overflow:hidden;
+  opacity:0; transition: opacity 0.6s ease;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(0,212,255,0.03) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(168,85,247,0.03) 0%, transparent 60%),
+    var(--bg-primary);
+}
+#app.visible { opacity:1; }
+
+/* ===== HEADER ===== */
+header {
+  height:var(--header-h); min-height:var(--header-h);
+  display:flex; align-items:center; padding:0 16px; gap:12px;
+  background: var(--bg-glass);
+  border-bottom:1px solid var(--border-color);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  z-index:100; position:relative; flex-shrink:0;
+}
+header::after {
+  content:''; position:absolute; bottom:-1px; left:0; right:0; height:1px;
+  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+  opacity:0.3;
+}
+
+.logo {
+  font-family:var(--font-mono); font-weight:700; font-size:18px;
+  color:var(--accent-cyan); letter-spacing:4px; margin-right:8px;
+  display:flex; align-items:center; gap:10px; flex-shrink:0;
+  -webkit-user-select:none; user-select:none;
+}
+.logo-dot {
+  width:8px; height:8px; background:var(--accent-cyan); border-radius:50%;
+  box-shadow: 0 0 8px var(--accent-cyan);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:0.5;transform:scale(0.8)}
+}
+
+.header-divider { width:1px; height:28px; background:var(--border-color); flex-shrink:0; }
+
+.threat-level {
+  display:flex; align-items:center; gap:8px;
+  padding:4px 12px; border-radius:var(--radius-xs);
+  font-size:11px; font-weight:600; letter-spacing:1px;
+  font-family:var(--font-mono); flex-shrink:0;
+  border:1px solid rgba(255,180,0,0.2);
+  background:rgba(255,180,0,0.08);
+  color:var(--accent-amber);
+}
+.threat-level .tl-dot {
+  width:6px;height:6px;border-radius:50%;
+  background:var(--accent-amber);
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+.header-stats {
+  display:flex; gap:16px; margin-left:auto; flex-shrink:0;
+}
+.header-stat {
+  display:flex; flex-direction:column; align-items:flex-end;
+  font-family:var(--font-mono);
+}
+.header-stat-label { font-size:9px; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; }
+.header-stat-value { font-size:15px; font-weight:600; color:var(--text-primary); }
+
+.clock {
+  font-family:var(--font-mono); font-size:14px; font-weight:500;
+  color:var(--accent-cyan); flex-shrink:0; letter-spacing:1px;
+  display:flex; flex-direction:column; align-items:flex-end;
+}
+.clock-label { font-size:9px; color:var(--text-muted); letter-spacing:1px; }
+
+/* ===== FILTER BAR ===== */
+.filter-bar {
+  height:var(--filter-h); min-height:var(--filter-h);
+  display:flex; align-items:center; padding:0 16px; gap:8px;
+  background: rgba(12,18,32,0.6);
+  border-bottom:1px solid var(--border-color);
+  overflow-x:auto; flex-shrink:0;
+}
+
+.filter-btn {
+  display:flex; align-items:center; gap:6px;
+  padding:6px 14px; border-radius:20px;
+  font-size:12px; font-weight:500;
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--border-color);
+  color:var(--text-secondary); cursor:pointer;
+  transition:all 0.2s ease; white-space:nowrap;
+  font-family:var(--font-sans);
+  -webkit-user-select:none; user-select:none;
+}
+.filter-btn:hover { background:rgba(255,255,255,0.08); color:var(--text-primary); }
+.filter-btn.active { border-color:var(--accent-cyan); color:var(--accent-cyan); background:rgba(0,212,255,0.08); box-shadow:0 0 12px rgba(0,212,255,0.1); }
+.filter-btn.active[data-filter="conflict"] { border-color:var(--accent-red); color:var(--accent-red); background:rgba(255,45,85,0.08); box-shadow:0 0 12px rgba(255,45,85,0.1); }
+.filter-btn.active[data-filter="weather"] { border-color:var(--accent-blue); color:var(--accent-blue); background:rgba(59,130,246,0.08); box-shadow:0 0 12px rgba(59,130,246,0.1); }
+.filter-btn.active[data-filter="economic"] { border-color:var(--accent-green); color:var(--accent-green); background:rgba(0,230,118,0.08); box-shadow:0 0 12px rgba(0,230,118,0.1); }
+.filter-btn.active[data-filter="breaking"] { border-color:var(--accent-amber); color:var(--accent-amber); background:rgba(255,180,0,0.08); box-shadow:0 0 12px rgba(255,180,0,0.1); }
+.filter-btn.active[data-filter="cyber"] { border-color:var(--accent-purple); color:var(--accent-purple); background:rgba(168,85,247,0.08); box-shadow:0 0 12px rgba(168,85,247,0.1); }
+
+.filter-btn .count {
+  font-size:10px; padding:1px 6px; border-radius:10px;
+  background:rgba(255,255,255,0.1); font-family:var(--font-mono);
+}
+
+.search-box {
+  margin-left:auto; display:flex; align-items:center; gap:8px;
+  padding:6px 14px; border-radius:20px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--border-color);
+  min-width:200px; transition:all 0.3s ease;
+}
+.search-box:focus-within { border-color:var(--accent-cyan); background:rgba(0,212,255,0.04); }
+.search-box i { color:var(--text-muted); font-size:12px; flex-shrink:0; }
+.search-box input {
+  border:none; background:none; outline:none;
+  color:var(--text-primary); font-size:12px;
+  font-family:var(--font-sans); width:100%;
+}
+.search-box input::placeholder { color:var(--text-muted); }
+
+.severity-select {
+  padding:6px 12px; border-radius:20px; font-size:12px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--border-color);
+  color:var(--text-secondary); cursor:pointer;
+  font-family:var(--font-sans); outline:none;
+  -webkit-appearance:none; -moz-appearance:none; appearance:none;
+}
+.severity-select option { background:var(--bg-surface); color:var(--text-primary); }
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+  flex:1; display:flex; overflow:hidden; position:relative;
+  min-height:0;
+}
+
+/* ===== MAP ===== */
+.map-wrap {
+  flex:1; position:relative; min-width:0;
+}
+#map {
+  width:100%; height:100%;
+  background:var(--bg-primary);
+}
+.leaflet-container { background:var(--bg-primary) !important; }
+.leaflet-control-zoom { border:none !important; margin-top:50px !important; }
+.leaflet-control-zoom a {
+  background:var(--bg-glass) !important; color:var(--text-primary) !important;
+  border:1px solid var(--border-color) !important;
+  -webkit-backdrop-filter:blur(12px) !important;
+  backdrop-filter:blur(12px) !important;
+  width:32px !important; height:32px !important; line-height:32px !important;
+  font-size:14px !important;
+}
+.leaflet-control-zoom a:hover { background:var(--bg-surface) !important; }
+.leaflet-control-attribution { display:none !important; }
+.leaflet-popup { display:none !important; }
+
+/* Map markers */
+.event-marker {
+  position:relative; cursor:pointer;
+  transition: transform 0.2s ease;
+}
+.event-marker:hover { transform:scale(1.3); z-index:9999 !important; }
+
+.marker-dot {
+  border-radius:50%;
+  border:2px solid;
+  position:relative;
+}
+.marker-dot.sz-5 { width:20px; height:20px; }
+.marker-dot.sz-4 { width:17px; height:17px; }
+.marker-dot.sz-3 { width:14px; height:14px; }
+.marker-dot.sz-2 { width:12px; height:12px; }
+.marker-dot.sz-1 { width:10px; height:10px; }
+
+.marker-dot::after {
+  content:''; position:absolute;
+  top:-6px;left:-6px;right:-6px;bottom:-6px;
+  border-radius:50%; border:1px solid; opacity:0.3;
+  animation: marker-pulse 2s ease-out infinite;
+}
+@keyframes marker-pulse {
+  0%{transform:scale(1);opacity:0.4}
+  100%{transform:scale(2.2);opacity:0}
+}
+
+.marker-dot.conflict { border-color:var(--accent-red); background:rgba(255,45,85,0.6); box-shadow:0 0 8px rgba(255,45,85,0.5); }
+.marker-dot.conflict::after { border-color:var(--accent-red); }
+.marker-dot.breaking { border-color:var(--accent-amber); background:rgba(255,180,0,0.6); box-shadow:0 0 8px rgba(255,180,0,0.5); }
+.marker-dot.breaking::after { border-color:var(--accent-amber); }
+.marker-dot.weather { border-color:var(--accent-blue); background:rgba(59,130,246,0.6); box-shadow:0 0 8px rgba(59,130,246,0.5); }
+.marker-dot.weather::after { border-color:var(--accent-blue); }
+.marker-dot.economic { border-color:var(--accent-green); background:rgba(0,230,118,0.6); box-shadow:0 0 8px rgba(0,230,118,0.5); }
+.marker-dot.economic::after { border-color:var(--accent-green); }
+.marker-dot.cyber { border-color:var(--accent-purple); background:rgba(168,85,247,0.6); box-shadow:0 0 8px rgba(168,85,247,0.5); }
+.marker-dot.cyber::after { border-color:var(--accent-purple); }
+.marker-dot.health { border-color:var(--accent-orange); background:rgba(255,107,53,0.6); box-shadow:0 0 8px rgba(255,107,53,0.5); }
+.marker-dot.health::after { border-color:var(--accent-orange); }
+
+/* Map overlay badges */
+.map-overlay-info {
+  position:absolute; top:12px; left:12px;
+  z-index:500; display:flex; gap:8px;
+  pointer-events:none;
+}
+.map-info-badge {
+  padding:5px 12px; border-radius:20px;
+  background:var(--bg-glass);
+  -webkit-backdrop-filter:blur(12px);
+  backdrop-filter: blur(12px);
+  border:1px solid var(--border-color);
+  font-size:11px; font-family:var(--font-mono);
+  color:var(--text-secondary); display:flex; align-items:center; gap:6px;
+  pointer-events:auto;
+}
+.map-info-badge i { font-size:10px; }
+
+/* ===== FEED PANEL ===== */
+.feed-panel {
+  width:380px; min-width:380px;
+  display:flex; flex-direction:column;
+  background:var(--bg-glass);
+  border-left:1px solid var(--border-color);
+  -webkit-backdrop-filter:blur(20px);
+  backdrop-filter: blur(20px);
+  position:relative; z-index:50;
+  flex-shrink:0;
+}
+.feed-header {
+  padding:12px 16px; display:flex; align-items:center; gap:10px;
+  border-bottom:1px solid var(--border-color); flex-shrink:0;
+}
+.feed-title {
+  font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px;
+}
+.feed-title .live-dot {
+  width:6px;height:6px;border-radius:50%;
+  background:var(--accent-red);
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+.feed-count {
+  margin-left:auto; font-size:11px; color:var(--text-muted);
+  font-family:var(--font-mono);
+}
+.feed-close-btn {
+  display:none; background:none; border:none; color:var(--text-secondary);
+  cursor:pointer; font-size:16px; padding:4px;
+}
+
+.feed-list {
+  flex:1; overflow-y:auto; padding:8px;
+  min-height:0;
+}
+
+.feed-item {
+  padding:12px; border-radius:var(--radius-sm);
+  background:rgba(255,255,255,0.02);
+  border:1px solid transparent;
+  margin-bottom:6px; cursor:pointer;
+  transition:all 0.25s ease; position:relative;
+  animation: feedSlideIn 0.4s ease-out;
+}
+@keyframes feedSlideIn {
+  from{opacity:0;transform:translateX(20px)}
+  to{opacity:1;transform:translateX(0)}
+}
+.feed-item:hover {
+  background:rgba(255,255,255,0.05);
+  border-color:var(--border-color);
+}
+.feed-item.unread { border-left:2px solid var(--accent-cyan); }
+.feed-item.critical { border-left:2px solid var(--accent-red); }
+
+.feed-item-header { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.feed-item-cat {
+  font-size:9px; font-weight:700; letter-spacing:1px;
+  padding:2px 8px; border-radius:10px; text-transform:uppercase;
+  font-family:var(--font-mono);
+}
+.feed-item-cat.conflict { background:rgba(255,45,85,0.15); color:var(--accent-red); }
+.feed-item-cat.breaking { background:rgba(255,180,0,0.15); color:var(--accent-amber); }
+.feed-item-cat.weather { background:rgba(59,130,246,0.15); color:var(--accent-blue); }
+.feed-item-cat.economic { background:rgba(0,230,118,0.15); color:var(--accent-green); }
+.feed-item-cat.cyber { background:rgba(168,85,247,0.15); color:var(--accent-purple); }
+.feed-item-cat.health { background:rgba(255,107,53,0.15); color:var(--accent-orange); }
+
+.feed-item-severity {
+  font-size:9px; font-family:var(--font-mono); color:var(--text-muted);
+  margin-left:auto;
+}
+.feed-item-severity.sev-5 { color:var(--accent-red); }
+.feed-item-severity.sev-4 { color:var(--accent-amber); }
+
+.feed-item-title { font-size:13px; font-weight:600; line-height:1.4; margin-bottom:6px; }
+.feed-item-meta {
+  display:flex; align-items:center; gap:10px;
+  font-size:10px; color:var(--text-muted); font-family:var(--font-mono);
+  flex-wrap:wrap;
+}
+.feed-item-meta i { font-size:9px; }
+
+.feed-item-bookmark {
+  position:absolute; top:12px; right:12px;
+  background:none; border:none; color:var(--text-muted);
+  cursor:pointer; font-size:12px; opacity:0;
+  transition:all 0.2s ease;
+}
+.feed-item:hover .feed-item-bookmark { opacity:1; }
+.feed-item-bookmark.active { opacity:1; color:var(--accent-amber); }
+
+/* ===== STATS BAR ===== */
+.stats-bar {
+  height:var(--stats-h); min-height:var(--stats-h);
+  display:flex; align-items:center; padding:0 16px; gap:20px;
+  background:var(--bg-glass);
+  border-top:1px solid var(--border-color);
+  -webkit-backdrop-filter:blur(20px);
+  backdrop-filter: blur(20px);
+  flex-shrink:0;
+  overflow-x:auto;
+}
+.stat-item {
+  display:flex; align-items:center; gap:8px;
+  font-family:var(--font-mono); font-size:11px;
+  color:var(--text-secondary); white-space:nowrap;
+  flex-shrink:0;
+}
+.stat-item .stat-icon {
+  width:28px; height:28px; border-radius:var(--radius-xs);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; flex-shrink:0;
+}
+.stat-item .stat-icon.red { background:rgba(255,45,85,0.1); color:var(--accent-red); }
+.stat-item .stat-icon.amber { background:rgba(255,180,0,0.1); color:var(--accent-amber); }
+.stat-item .stat-icon.blue { background:rgba(59,130,246,0.1); color:var(--accent-blue); }
+.stat-item .stat-icon.green { background:rgba(0,230,118,0.1); color:var(--accent-green); }
+.stat-item .stat-icon.purple { background:rgba(168,85,247,0.1); color:var(--accent-purple); }
+.stat-item .stat-icon.cyan { background:rgba(0,212,255,0.1); color:var(--accent-cyan); }
+
+.stat-item .stat-val { font-size:16px; font-weight:700; color:var(--text-primary); }
+.stat-item .stat-label { font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+.stat-item .stat-info { display:flex; flex-direction:column; }
+
+.stat-sparkline { width:60px; height:24px; flex-shrink:0; }
+
+.stats-divider { width:1px; height:28px; background:var(--border-color); flex-shrink:0; }
+
+.stat-bar-mini { display:flex; gap:2px; align-items:flex-end; height:20px; }
+.stat-bar-mini span {
+  width:3px; background:var(--accent-cyan); border-radius:1px;
+  opacity:0.6; transition: height 0.5s ease;
+}
+
+/* ===== DETAIL PANEL (FIXED - no overlap with map) ===== */
+.detail-overlay {
+  position:fixed; inset:0; z-index:9000;
+  background:rgba(0,0,0,0.6);
+  opacity:0; visibility:hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  -webkit-backdrop-filter:blur(4px);
+  backdrop-filter:blur(4px);
+}
+.detail-overlay.open { opacity:1; visibility:visible; }
+
+.detail-panel {
+  position:fixed; top:0; right:0; bottom:0;
+  width:520px; max-width:100vw;
+  z-index:9001;
+  background:var(--bg-secondary);
+  border-left:1px solid var(--border-color);
+  box-shadow: -20px 0 60px rgba(0,0,0,0.7);
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+  display:flex; flex-direction:column;
+  overflow:hidden;
+}
+.detail-panel.open { transform: translateX(0); }
+
+.detail-panel-header {
+  padding:16px 20px; display:flex; align-items:center; gap:12px;
+  border-bottom:1px solid var(--border-color);
+  flex-shrink:0; background:var(--bg-secondary);
+}
+.detail-close {
+  background:rgba(255,255,255,0.05); border:1px solid var(--border-color);
+  color:var(--text-secondary); width:36px; height:36px;
+  border-radius:var(--radius-xs); cursor:pointer; font-size:14px;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.2s ease; flex-shrink:0;
+}
+.detail-close:hover { background:rgba(255,255,255,0.1); color:var(--text-primary); }
+.detail-panel-title { font-size:14px; font-weight:600; }
+
+.detail-body { flex:1; overflow-y:auto; padding:20px; min-height:0; }
+
+.detail-section { margin-bottom:24px; }
+.detail-section-title {
+  font-size:10px; font-weight:700; letter-spacing:1.5px;
+  color:var(--text-muted); text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.detail-section-title i { font-size:10px; }
+
+.detail-event-title { font-size:20px; font-weight:700; line-height:1.3; margin-bottom:8px; }
+.detail-event-location {
+  font-size:13px; color:var(--text-secondary);
+  display:flex; align-items:center; gap:6px; margin-bottom:16px;
+}
+.detail-event-location i { color:var(--accent-cyan); }
+
+.detail-meta-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;
+}
+.detail-meta-card {
+  padding:10px 12px; border-radius:var(--radius-xs);
+  background:rgba(255,255,255,0.03);
+  border:1px solid var(--border-color);
+}
+.detail-meta-card label {
+  font-size:9px; color:var(--text-muted); text-transform:uppercase;
+  letter-spacing:1px; font-family:var(--font-mono); display:block;
+}
+.detail-meta-card .val {
+  font-size:14px; font-weight:600; margin-top:2px;
+}
+
+.detail-description {
+  font-size:13px; line-height:1.8; color:var(--text-secondary);
+  margin-bottom:16px;
+}
+
+.ai-summary-box {
+  padding:16px; border-radius:var(--radius-sm);
+  background: linear-gradient(135deg, rgba(0,212,255,0.05), rgba(168,85,247,0.05));
+  border:1px solid rgba(0,212,255,0.15);
+  position:relative; overflow:hidden;
+}
+.ai-summary-box::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+}
+.ai-summary-header {
+  display:flex; align-items:center; gap:8px;
+  font-size:11px; font-weight:600; color:var(--accent-cyan);
+  margin-bottom:10px;
+}
+.ai-summary-header i { font-size:14px; }
+.ai-summary-text { font-size:13px; line-height:1.7; color:var(--text-secondary); min-height:40px; }
+.ai-cursor {
+  display:inline-block; width:2px; height:14px;
+  background:var(--accent-cyan); margin-left:2px;
+  animation: blink 0.8s step-end infinite; vertical-align:middle;
+}
+@keyframes blink { 50%{opacity:0} }
+
+.related-events { display:flex; flex-direction:column; gap:8px; }
+.related-item {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px; border-radius:var(--radius-xs);
+  background:rgba(255,255,255,0.02);
+  border:1px solid var(--border-color);
+  cursor:pointer; transition:all 0.2s ease;
+  font-size:12px;
+}
+.related-item:hover { background:rgba(255,255,255,0.05); }
+.related-item .ri-dot { width:6px;height:6px;border-radius:50%;flex-shrink:0; }
+.related-item-text { flex:1; min-width:0; }
+.related-item-title {
+  font-weight:500; margin-bottom:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.related-item-sub { font-size:10px; color:var(--text-muted); }
+
+.detail-actions {
+  display:flex; gap:8px; padding:16px 20px;
+  border-top:1px solid var(--border-color); flex-shrink:0;
+  background:var(--bg-secondary);
+}
+.detail-actions button {
+  flex:1; padding:10px; border-radius:var(--radius-xs);
+  font-size:12px; font-weight:600; cursor:pointer;
+  border:1px solid var(--border-color);
+  background:rgba(255,255,255,0.04);
+  color:var(--text-secondary);
+  font-family:var(--font-sans);
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  transition:all 0.2s ease;
+}
+.detail-actions button:hover { background:rgba(255,255,255,0.08); color:var(--text-primary); }
+.detail-actions button.primary {
+  background:rgba(0,212,255,0.1); color:var(--accent-cyan);
+  border-color:rgba(0,212,255,0.2);
+}
+.detail-actions button.primary:hover {
+  background:rgba(0,212,255,0.2);
+}
+
+/* ===== TOAST NOTIFICATIONS ===== */
+.toast-container {
+  position:fixed; top:70px; right:16px; z-index:10000;
+  display:flex; flex-direction:column; gap:8px;
+  max-width:360px; width:100%;
+  pointer-events:none;
+}
+.toast {
+  padding:12px 16px; border-radius:var(--radius-sm);
+  background:var(--bg-glass);
+  -webkit-backdrop-filter:blur(20px);
+  backdrop-filter: blur(20px);
+  border:1px solid var(--border-color);
+  box-shadow:var(--shadow-lg);
+  display:flex; align-items:flex-start; gap:10px;
+  animation: toastIn 0.4s cubic-bezier(0.4,0,0.2,1);
+  pointer-events:auto;
+  cursor:pointer; transition:transform 0.2s ease;
+}
+.toast:hover { transform:translateX(-4px); }
+.toast.removing { animation: toastOut 0.3s ease forwards; }
+@keyframes toastIn { from{opacity:0;transform:translateX(100%)} to{opacity:1;transform:translateX(0)} }
+@keyframes toastOut { to{opacity:0;transform:translateX(100%)} }
+
+.toast-icon {
+  width:28px; height:28px; border-radius:var(--radius-xs);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; flex-shrink:0;
+}
+.toast-icon.conflict { background:rgba(255,45,85,0.15); color:var(--accent-red); }
+.toast-icon.breaking { background:rgba(255,180,0,0.15); color:var(--accent-amber); }
+.toast-icon.weather { background:rgba(59,130,246,0.15); color:var(--accent-blue); }
+.toast-icon.economic { background:rgba(0,230,118,0.15); color:var(--accent-green); }
+.toast-icon.cyber { background:rgba(168,85,247,0.15); color:var(--accent-purple); }
+.toast-icon.health { background:rgba(255,107,53,0.15); color:var(--accent-orange); }
+
+.toast-content { flex:1; min-width:0; }
+.toast-title { font-size:12px; font-weight:600; margin-bottom:2px; }
+.toast-msg { font-size:11px; color:var(--text-secondary); line-height:1.4;
+  overflow:hidden; text-overflow:ellipsis; display:-webkit-box;
+  -webkit-line-clamp:2; -webkit-box-orient:vertical;
+}
+.toast-time { font-size:9px; color:var(--text-muted); font-family:var(--font-mono); margin-top:4px; }
+.toast-close-btn {
+  background:none; border:none; color:var(--text-muted);
+  cursor:pointer; font-size:12px; padding:2px;
+  transition: color 0.2s ease; flex-shrink:0;
+}
+.toast-close-btn:hover { color:var(--text-primary); }
+
+/* ===== MOBILE FEED BUTTON ===== */
+.mobile-feed-btn {
+  display:none; position:fixed; bottom:70px; right:16px;
+  z-index:150; width:48px; height:48px; border-radius:50%;
+  background:var(--accent-cyan); color:var(--bg-primary);
+  border:none; font-size:18px; cursor:pointer;
+  box-shadow:0 4px 20px rgba(0,212,255,0.4);
+  transition:all 0.2s ease;
+  align-items:center; justify-content:center;
+}
+.mobile-feed-btn:hover { transform:scale(1.1); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width:900px) {
+  .feed-panel {
+    position:fixed; top:0; right:0; bottom:0; width:100%;
+    max-width:380px; z-index:8000;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    border-left:1px solid var(--border-color);
+  }
+  .feed-panel.mobile-open { transform: translateX(0); }
+  .feed-close-btn { display:block !important; }
+  .mobile-feed-btn { display:flex; }
+  .header-stats { display:none; }
+  .header-divider.hd-stats { display:none; }
+  .search-box { min-width:120px; }
+  .map-overlay-info { left:12px; top:12px; }
+  .detail-panel { width:100%; max-width:100vw; }
+}
+
+@media (max-width:600px) {
+  .filter-bar { padding:0 8px; gap:4px; }
+  .filter-btn { padding:5px 10px; font-size:11px; }
+  .filter-btn .filter-label { display:none; }
+  .search-box { min-width:80px; }
+  .stats-bar { padding:0 8px; gap:10px; }
+  .stat-sparkline { display:none; }
+  header { padding:0 10px; gap:8px; }
+  .logo { font-size:14px; letter-spacing:2px; }
+  .clock { font-size:12px; }
+  .threat-level { font-size:9px; padding:3px 8px; }
+}
+</style>
+</head>
+<body>
+
+<!-- BOOT SCREEN -->
+<div id="boot-screen">
+  <div class="boot-logo">PATEL</div>
+  <div id="boot-messages"></div>
+  <div id="boot-progress"><div id="boot-progress-bar"></div></div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <header>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      PATEL
+    </div>
+    <div class="header-divider"></div>
+    <div class="threat-level" id="threat-level">
+      <div class="tl-dot"></div>
+      THREAT: <span id="threat-text">ELEVATED</span>
+    </div>
+    <div class="header-divider hd-stats"></div>
+    <div class="header-stats" id="header-stats">
+      <div class="header-stat">
+        <span class="header-stat-label">ACTIVE EVENTS</span>
+        <span class="header-stat-value" id="stat-total">0</span>
+      </div>
+      <div class="header-stat">
+        <span class="header-stat-label">COUNTRIES</span>
+        <span class="header-stat-value" id="stat-countries">0</span>
+      </div>
+      <div class="header-stat">
+        <span class="header-stat-label">CRITICAL</span>
+        <span class="header-stat-value" id="stat-critical" style="color:var(--accent-red)">0</span>
+      </div>
+    </div>
+    <div class="header-divider"></div>
+    <div class="clock" id="clock">
+      <span id="clock-time">00:00:00</span>
+      <span class="clock-label">UTC</span>
+    </div>
+  </header>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" data-filter="all" onclick="handleFilter(this,'all')">
+      <i class="fas fa-globe"></i> <span class="filter-label">All Events</span> <span class="count" id="count-all">0</span>
+    </button>
+    <button class="filter-btn" data-filter="conflict" onclick="handleFilter(this,'conflict')">
+      <i class="fas fa-crosshairs"></i> <span class="filter-label">Conflicts</span> <span class="count" id="count-conflict">0</span>
+    </button>
+    <button class="filter-btn" data-filter="breaking" onclick="handleFilter(this,'breaking')">
+      <i class="fas fa-bolt"></i> <span class="filter-label">Breaking</span> <span class="count" id="count-breaking">0</span>
+    </button>
+    <button class="filter-btn" data-filter="weather" onclick="handleFilter(this,'weather')">
+      <i class="fas fa-cloud-bolt"></i> <span class="filter-label">Weather</span> <span class="count" id="count-weather">0</span>
+    </button>
+    <button class="filter-btn" data-filter="economic" onclick="handleFilter(this,'economic')">
+      <i class="fas fa-chart-line"></i> <span class="filter-label">Economic</span> <span class="count" id="count-economic">0</span>
+    </button>
+    <button class="filter-btn" data-filter="cyber" onclick="handleFilter(this,'cyber')">
+      <i class="fas fa-shield-halved"></i> <span class="filter-label">Cyber</span> <span class="count" id="count-cyber">0</span>
+    </button>
+    <select class="severity-select" id="severity-filter" onchange="applyFilters()">
+      <option value="0">All Severity</option>
+      <option value="5">Critical (5)</option>
+      <option value="4">High (4+)</option>
+      <option value="3">Elevated (3+)</option>
+      <option value="2">Moderate (2+)</option>
+    </select>
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="search-input" placeholder="Search events..." oninput="applyFilters()">
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div class="map-overlay-info">
+        <div class="map-info-badge">
+          <i class="fas fa-satellite-dish" style="color:var(--accent-green)"></i>
+          <span id="data-streams">6 streams active</span>
+        </div>
+        <div class="map-info-badge">
+          <i class="fas fa-map-marker-alt" style="color:var(--accent-cyan)"></i>
+          <span id="marker-count">0 markers</span>
+        </div>
+      </div>
+    </div>
+
+    <aside class="feed-panel" id="feed-panel">
+      <div class="feed-header">
+        <div class="feed-title">
+          <div class="live-dot"></div>
+          LIVE FEED
+        </div>
+        <div class="feed-count" id="feed-count">0 events</div>
+        <button class="feed-close-btn" onclick="closeMobileFeed()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="feed-list" id="feed-list"></div>
+    </aside>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-icon red"><i class="fas fa-crosshairs"></i></div>
+      <div class="stat-info">
+        <div class="stat-val" id="sbar-conflict">0</div>
+        <div class="stat-label">Conflicts</div>
+      </div>
+      <canvas class="stat-sparkline" id="spark-conflict" width="60" height="24"></canvas>
+    </div>
+    <div class="stats-divider"></div>
+    <div class="stat-item">
+      <div class="stat-icon amber"><i class="fas fa-bolt"></i></div>
+      <div class="stat-info">
+        <div class="stat-val" id="sbar-breaking">0</div>
+        <div class="stat-label">Breaking</div>
+      </div>
+      <canvas class="stat-sparkline" id="spark-breaking" width="60" height="24"></canvas>
+    </div>
+    <div class="stats-divider"></div>
+    <div class="stat-item">
+      <div class="stat-icon blue"><i class="fas fa-cloud-bolt"></i></div>
+      <div class="stat-info">
+        <div class="stat-val" id="sbar-weather">0</div>
+        <div class="stat-label">Weather</div>
+      </div>
+      <canvas class="stat-sparkline" id="spark-weather" width="60" height="24"></canvas>
+    </div>
+    <div class="stats-divider"></div>
+    <div class="stat-item">
+      <div class="stat-icon green"><i class="fas fa-chart-line"></i></div>
+      <div class="stat-info">
+        <div class="stat-val" id="sbar-economic">0</div>
+        <div class="stat-label">Economic</div>
+      </div>
+      <canvas class="stat-sparkline" id="spark-economic" width="60" height="24"></canvas>
+    </div>
+    <div class="stats-divider"></div>
+    <div class="stat-item">
+      <div class="stat-icon purple"><i class="fas fa-shield-halved"></i></div>
+      <div class="stat-info">
+        <div class="stat-val" id="sbar-cyber">0</div>
+        <div class="stat-label">Cyber</div>
+      </div>
+      <canvas class="stat-sparkline" id="spark-cyber" width="60" height="24"></canvas>
+    </div>
+    <div class="stats-divider"></div>
+    <div class="stat-item">
+      <div class="stat-icon cyan"><i class="fas fa-satellite"></i></div>
+      <div class="stat-info">
+        <div class="stat-val" id="sbar-uptime">99.7%</div>
+        <div class="stat-label">Uptime</div>
+      </div>
+      <div class="stat-bar-mini" id="activity-bars"></div>
+    </div>
+  </div>
+
+  <button class="mobile-feed-btn" onclick="openMobileFeed()">
+    <i class="fas fa-newspaper"></i>
+  </button>
+</div>
+
+<!-- DETAIL OVERLAY + PANEL -->
+<div class="detail-overlay" id="detail-overlay"></div>
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-panel-header">
+    <button class="detail-close" onclick="closeDetail()"><i class="fas fa-times"></i></button>
+    <div class="detail-panel-title">Event Intelligence Report</div>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+  <div class="detail-actions">
+    <button onclick="bookmarkCurrent()"><i class="far fa-bookmark"></i> Bookmark</button>
+    <button onclick="shareCurrent()"><i class="fas fa-share-nodes"></i> Share</button>
+    <button class="primary" onclick="closeDetail()"><i class="fas fa-check"></i> Acknowledge</button>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+/* ===========================================================
+   CONFIGURATION
+   =========================================================== */
+var CONFIG = {
+  MAP_CENTER: [20, 10],
+  MAP_ZOOM: 3,
+  TILE_URL: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  UPDATE_INTERVAL: 8000,
+  TOAST_DURATION: 6000,
+  MAX_FEED_ITEMS: 80,
+  MAX_EVENTS: 120,
+  SPARKLINE_POINTS: 15
+};
+
+var CATEGORY_COLORS = {
+  conflict:'#ff2d55', breaking:'#ffb400', weather:'#3b82f6',
+  economic:'#00e676', cyber:'#a855f7', health:'#ff6b35'
+};
+var CATEGORY_ICONS = {
+  conflict:'fa-crosshairs', breaking:'fa-bolt', weather:'fa-cloud-bolt',
+  economic:'fa-chart-line', cyber:'fa-shield-halved', health:'fa-heart-pulse'
+};
+
+/* ===========================================================
+   GLOBAL STATE
+   =========================================================== */
+var STATE = {
+  events: [],
+  markers: {},
+  markerLayer: null,
+  map: null,
+  activeFilter: 'all',
+  searchQuery: '',
+  severityFilter: 0,
+  selectedEvent: null,
+  bookmarks: {},
+  sparkData: { conflict:[], breaking:[], weather:[], economic:[], cyber:[] },
+  eventIdCounter: 0,
+  aiTypingInterval: null,
+  detailOpen: false
+};
+
+/* ===========================================================
+   LOCATIONS DATABASE
+   =========================================================== */
+var LOCATIONS = [
+  {city:'Kyiv',country:'Ukraine',region:'Europe',lat:50.45,lng:30.52},
+  {city:'Gaza City',country:'Palestine',region:'Middle East',lat:31.50,lng:34.47},
+  {city:'Taipei',country:'Taiwan',region:'Asia',lat:25.03,lng:121.57},
+  {city:'Moscow',country:'Russia',region:'Europe',lat:55.76,lng:37.62},
+  {city:'Beijing',country:'China',region:'Asia',lat:39.91,lng:116.40},
+  {city:'Washington DC',country:'USA',region:'North America',lat:38.91,lng:-77.04},
+  {city:'London',country:'UK',region:'Europe',lat:51.51,lng:-0.13},
+  {city:'Tokyo',country:'Japan',region:'Asia',lat:35.68,lng:139.69},
+  {city:'Seoul',country:'South Korea',region:'Asia',lat:37.57,lng:126.98},
+  {city:'Berlin',country:'Germany',region:'Europe',lat:52.52,lng:13.41},
+  {city:'Paris',country:'France',region:'Europe',lat:48.86,lng:2.35},
+  {city:'Mumbai',country:'India',region:'Asia',lat:19.08,lng:72.88},
+  {city:'São Paulo',country:'Brazil',region:'South America',lat:-23.55,lng:-46.63},
+  {city:'Lagos',country:'Nigeria',region:'Africa',lat:6.52,lng:3.38},
+  {city:'Cairo',country:'Egypt',region:'Africa',lat:30.04,lng:31.24},
+  {city:'Sydney',country:'Australia',region:'Oceania',lat:-33.87,lng:151.21},
+  {city:'Miami',country:'USA',region:'North America',lat:25.76,lng:-80.19},
+  {city:'Mexico City',country:'Mexico',region:'North America',lat:19.43,lng:-99.13},
+  {city:'Singapore',country:'Singapore',region:'Asia',lat:1.35,lng:103.82},
+  {city:'Dubai',country:'UAE',region:'Middle East',lat:25.20,lng:55.27},
+  {city:'Istanbul',country:'Turkey',region:'Europe',lat:41.01,lng:28.98},
+  {city:'Nairobi',country:'Kenya',region:'Africa',lat:-1.29,lng:36.82},
+  {city:'Buenos Aires',country:'Argentina',region:'South America',lat:-34.60,lng:-58.38},
+  {city:'Jakarta',country:'Indonesia',region:'Asia',lat:-6.21,lng:106.85},
+  {city:'Bangkok',country:'Thailand',region:'Asia',lat:13.76,lng:100.50},
+  {city:'Lima',country:'Peru',region:'South America',lat:-12.05,lng:-77.04},
+  {city:'Manila',country:'Philippines',region:'Asia',lat:14.60,lng:120.98},
+  {city:'Riyadh',country:'Saudi Arabia',region:'Middle East',lat:24.71,lng:46.67},
+  {city:'Kabul',country:'Afghanistan',region:'Asia',lat:34.53,lng:69.17},
+  {city:'Khartoum',country:'Sudan',region:'Africa',lat:15.50,lng:32.56},
+  {city:'Ankara',country:'Turkey',region:'Europe',lat:39.93,lng:32.85},
+  {city:'Tehran',country:'Iran',region:'Middle East',lat:35.69,lng:51.39},
+  {city:'Bogotá',country:'Colombia',region:'South America',lat:4.71,lng:-74.07},
+  {city:'Dhaka',country:'Bangladesh',region:'Asia',lat:23.81,lng:90.41},
+  {city:'Johannesburg',country:'South Africa',region:'Africa',lat:-26.20,lng:28.05},
+  {city:'Yangon',country:'Myanmar',region:'Asia',lat:16.87,lng:96.20},
+  {city:'Addis Ababa',country:'Ethiopia',region:'Africa',lat:9.02,lng:38.75},
+  {city:'Caracas',country:'Venezuela',region:'South America',lat:10.49,lng:-66.88},
+  {city:'Hanoi',country:'Vietnam',region:'Asia',lat:21.03,lng:105.85},
+  {city:'Lisbon',country:'Portugal',region:'Europe',lat:38.72,lng:-9.14}
+];
+
+/* ===========================================================
+   EVENT TEMPLATES
+   =========================================================== */
+var EVENT_TEMPLATES = {
+  conflict: [
+    {t:'Military operations reported near {loc}',d:'Armed forces have been observed conducting operations in the region. Multiple reports from local sources confirm increased military activity including troop movements and aerial operations.',s:[4,5]},
+    {t:'Escalation of tensions along {loc} border region',d:'Diplomatic sources report growing tensions along the border area. International observers have noted increased military posture and mobilization of reserve forces.',s:[3,4]},
+    {t:'Armed clashes reported in {loc} suburbs',d:'Local security forces engaged in firefight with unknown armed group on the outskirts of the city. Civilian casualties reported. Area has been cordoned off.',s:[4,5]},
+    {t:'Drone strike targets facility near {loc}',d:'An unmanned aerial vehicle struck a military installation approximately 15km from the city center. Damage assessment is ongoing. No group has claimed responsibility.',s:[5,5]},
+    {t:'Ceasefire violations documented in {loc} area',d:'International monitoring group has documented multiple ceasefire violations in the past 24 hours, including artillery fire and small arms exchanges.',s:[3,4]},
+    {t:'Protests turn violent in central {loc}',d:'What began as a peaceful demonstration escalated when security forces used tear gas and rubber bullets. At least 30 injuries reported.',s:[3,4]}
+  ],
+  breaking: [
+    {t:'Major political development in {country}',d:'Senior government officials announced sweeping policy changes that could reshape the political landscape. Opposition leaders have called for emergency parliamentary sessions.',s:[3,4]},
+    {t:'Breaking: Emergency declared in {loc}',d:'Authorities have declared a state of emergency following a series of incidents. Essential services are being mobilized and citizens advised to remain indoors.',s:[4,5]},
+    {t:'Historic agreement signed in {loc}',d:'In a landmark diplomatic achievement, rival factions signed a comprehensive agreement addressing years of dispute. International community has cautiously welcomed the development.',s:[2,3]},
+    {t:'Mass evacuation ordered in {loc} region',d:'Local authorities have ordered the evacuation of approximately 50,000 residents due to an imminent threat. Emergency shelters are being set up across multiple locations.',s:[4,5]},
+    {t:'Critical infrastructure failure in {loc}',d:'A major infrastructure system experienced catastrophic failure, affecting services for millions. Emergency repair crews have been dispatched.',s:[3,4]},
+    {t:'High-profile arrest in {country}',d:'Law enforcement agencies have arrested a key figure in connection with major ongoing investigation. The arrest is expected to have far-reaching implications.',s:[3,3]}
+  ],
+  weather: [
+    {t:'Severe storm system approaching {loc}',d:'Meteorological agencies tracking a powerful storm system with sustained winds exceeding 120 km/h. Flooding and infrastructure damage expected in coastal areas.',s:[3,4]},
+    {t:'Earthquake detected near {loc} (M6.2)',d:'Seismological institutes have recorded a significant earthquake at a depth of 10km. Tsunami advisories have been issued for coastal communities. Emergency response activated.',s:[4,5]},
+    {t:'Extreme heat advisory for {loc} region',d:'Temperature records are expected to be broken with forecasts reaching 48 degrees C. Health authorities are warning of heat stroke risks and advising vulnerable populations to seek shelter.',s:[2,3]},
+    {t:'Flooding emergency in {loc} metropolitan area',d:'Heavy rainfall over 72 hours has overwhelmed drainage systems. Major roads and transportation networks are disrupted. Rescue operations underway.',s:[4,4]},
+    {t:'Volcanic activity alert near {loc}',d:'Seismic monitoring stations have detected increased volcanic activity. Authorities have raised the alert level and are preparing for potential evacuation.',s:[3,5]},
+    {t:'Wildfire threatens {loc} communities',d:'A fast-moving wildfire has consumed over 15,000 hectares and is threatening residential areas. Multiple firefighting aircraft deployed. Evacuation orders issued.',s:[4,4]}
+  ],
+  economic: [
+    {t:'{country} central bank announces emergency rate decision',d:'In an unexpected move, the central bank has adjusted interest rates by 75 basis points. Markets are reacting sharply with significant currency volatility.',s:[3,4]},
+    {t:'Major market disruption affects {loc} financial district',d:'Trading was briefly halted on the main exchange after a sudden 5% drop. Analysts are pointing to geopolitical tensions and algorithmic trading as contributing factors.',s:[3,4]},
+    {t:'Supply chain crisis deepens in {loc} shipping hub',d:'Port congestion has reached critical levels with over 100 vessels waiting to dock. Global supply chain disruptions expected to worsen in coming weeks.',s:[2,3]},
+    {t:'{country} currency in freefall amid economic uncertainty',d:'The national currency has lost 12% of its value against the dollar in the past week. Central bank interventions have so far failed to stabilize the situation.',s:[4,4]},
+    {t:'Energy crisis escalates in {loc} region',d:'Rolling blackouts have been implemented as energy demand outstrips supply. Industrial output is being severely affected. Governments negotiating emergency energy imports.',s:[3,4]},
+    {t:'Tech sector layoffs accelerate from {loc}',d:'Major technology companies headquartered in the region announced combined layoffs of over 15,000 employees, signaling a significant downturn in the sector.',s:[2,3]}
+  ],
+  cyber: [
+    {t:'Large-scale cyberattack targets {country} infrastructure',d:'Critical national infrastructure has been hit by a sophisticated cyberattack. Government agencies report disruption to essential services. Attribution is being investigated.',s:[4,5]},
+    {t:'Data breach exposes millions of records in {loc}',d:'A major data breach has compromised personal information of an estimated 40 million individuals. The attack vector appears to be a zero-day vulnerability.',s:[3,4]},
+    {t:'Ransomware attack cripples {loc} healthcare system',d:'Hospital networks across the region have been encrypted by a ransomware gang. Patient care is being disrupted and ambulances are being diverted.',s:[4,5]},
+    {t:'State-sponsored hacking campaign detected from {country}',d:'Cybersecurity firms have uncovered a sophisticated espionage campaign targeting government agencies across multiple nations. Advanced persistent threat actors are suspected.',s:[3,4]},
+    {t:'Financial systems targeted in {loc} cyber incident',d:'Banking and payment systems experienced disruptions following a coordinated cyber campaign. Transactions were halted as a precautionary measure.',s:[4,4]}
+  ],
+  health: [
+    {t:'Disease outbreak reported in {loc} region',d:'Health authorities are investigating a cluster of cases of an unknown illness. Over 200 cases have been identified in the past week. WHO has been notified.',s:[3,4]},
+    {t:'Hospital capacity crisis in {loc}',d:'Medical facilities are reporting critical overcrowding with ICU capacity at 98%. Emergency field hospitals are being established.',s:[3,4]},
+    {t:'Contamination alert in {loc} water supply',d:'Public health officials have detected elevated levels of contaminants in the municipal water supply. Residents advised to use bottled water until further notice.',s:[3,4]}
+  ]
+};
+
+var SOURCES = [
+  'Reuters','AP News','Bloomberg','BBC World','Al Jazeera','CNN','AFP',
+  'DW News','NHK World','France24','Sky News','The Guardian','WSJ','Financial Times','CNBC'
+];
+
+/* ===========================================================
+   BOOT SEQUENCE
+   =========================================================== */
+var BOOT_MESSAGES = [
+  {text:'Initializing PATEL core engine v4.2.1...', delay:200, type:'normal'},
+  {text:'Loading geospatial intelligence modules...', delay:400, type:'normal'},
+  {text:'Establishing encrypted satellite uplinks...', delay:600, type:'normal'},
+  {text:'Connecting to SIGINT data streams... [6/6 active]', delay:800, type:'success'},
+  {text:'Calibrating threat assessment algorithms...', delay:1000, type:'normal'},
+  {text:'Synchronizing global event databases...', delay:1200, type:'normal'},
+  {text:'Loading OSINT feeds: Reuters, AP, Bloomberg, GDELT...', delay:1400, type:'normal'},
+  {text:'Warning: Elevated global threat index detected (7.4/10)', delay:1600, type:'error'},
+  {text:'Initializing AI analysis pipeline (GPT-PATEL)...', delay:1800, type:'normal'},
+  {text:'Map rendering engine ready', delay:2000, type:'success'},
+  {text:'Real-time monitoring active — all systems nominal', delay:2200, type:'success'},
+  {text:'PATEL ONLINE. Welcome, Operator.', delay:2600, type:'success'}
+];
+
+function runBootSequence() {
+  var msgContainer = document.getElementById('boot-messages');
+  var progressBar = document.getElementById('boot-progress-bar');
+  var total = BOOT_MESSAGES.length;
+
+  BOOT_MESSAGES.forEach(function(msg, i) {
+    setTimeout(function() {
+      var div = document.createElement('div');
+      div.className = 'msg ' + msg.type;
+      div.textContent = msg.text;
+      msgContainer.appendChild(div);
+      msgContainer.scrollTop = msgContainer.scrollHeight;
+      progressBar.style.width = ((i + 1) / total * 100) + '%';
+
+      if (i === total - 1) {
+        setTimeout(function() {
+          document.getElementById('boot-screen').classList.add('hidden');
+          var app = document.getElementById('app');
+          app.style.display = 'flex';
+          // Force reflow before adding visible class
+          void app.offsetHeight;
+          app.classList.add('visible');
+          initApp();
+        }, 1000);
+      }
+    }, msg.delay);
+  });
+}
+
+/* ===========================================================
+   MAP INITIALIZATION
+   =========================================================== */
+function initMap() {
+  try {
+    STATE.map = L.map('map', {
+      center: CONFIG.MAP_CENTER,
+      zoom: CONFIG.MAP_ZOOM,
+      zoomControl: true,
+      attributionControl: false,
+      minZoom: 2,
+      maxZoom: 14,
+      worldCopyJump: true,
+      preferCanvas: true
+    });
+
+    L.tileLayer(CONFIG.TILE_URL, {
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(STATE.map);
+
+    STATE.map.zoomControl.setPosition('topleft');
+
+    // Create a layer group for markers
+    STATE.markerLayer = L.layerGroup().addTo(STATE.map);
+
+    // Fix map size after initialization
+    setTimeout(function() {
+      STATE.map.invalidateSize();
+    }, 100);
+  } catch (e) {
+    console.error('Map initialization error:', e);
+  }
+}
+
+/* ===========================================================
+   HELPER FUNCTIONS
+   =========================================================== */
+function pickRandom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function generateEventId() {
+  STATE.eventIdCounter++;
+  var id = String(STATE.eventIdCounter);
+  while (id.length < 5) id = '0' + id;
+  return 'EVT-' + id;
+}
+
+function timeAgo(date) {
+  var seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 10) return 'just now';
+  if (seconds < 60) return seconds + 's ago';
+  var minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return minutes + 'm ago';
+  var hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours + 'h ago';
+  return Math.floor(hours / 24) + 'd ago';
+}
+
+function formatTime(date) {
+  return date.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+}
+
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* ===========================================================
+   EVENT GENERATION
+   =========================================================== */
+function generateEvent(category) {
+  if (!category) {
+    var cats = ['conflict','breaking','weather','economic','cyber','health'];
+    var weights = [20, 25, 20, 15, 12, 8];
+    var total = 0;
+    for (var w = 0; w < weights.length; w++) total += weights[w];
+    var r = Math.random() * total;
+    for (var j = 0; j < cats.length; j++) {
+      r -= weights[j];
+      if (r <= 0) { category = cats[j]; break; }
+    }
+    if (!category) category = 'breaking';
+  }
+
+  var loc = pickRandom(LOCATIONS);
+  var templates = EVENT_TEMPLATES[category];
+  if (!templates || templates.length === 0) {
+    templates = EVENT_TEMPLATES.breaking;
+    category = 'breaking';
+  }
+  var template = pickRandom(templates);
+  var severity = template.s[Math.floor(Math.random() * template.s.length)];
+
+  var latOff = (Math.random() - 0.5) * 2;
+  var lngOff = (Math.random() - 0.5) * 2;
+
+  var title = template.t.replace('{loc}', loc.city).replace('{country}', loc.country);
+
+  return {
+    id: generateEventId(),
+    title: title,
+    description: template.d,
+    category: category,
+    severity: severity,
+    lat: loc.lat + latOff,
+    lng: loc.lng + lngOff,
+    city: loc.city,
+    country: loc.country,
+    region: loc.region,
+    location: loc.city + ', ' + loc.country,
+    source: pickRandom(SOURCES),
+    timestamp: new Date(),
+    aiSummary: generateAISummary(category, severity, loc),
+    bookmarked: false
+  };
+}
+
+function generateAISummary(category, severity, loc) {
+  var risk = severity >= 4 ? 'HIGH RISK' : severity >= 3 ? 'MODERATE RISK' : 'LOW RISK';
+  var summaries = [
+    '[' + risk + '] This ' + category + ' event in ' + loc.region + ' requires attention. Key stakeholders in the ' + loc.country + ' area should monitor developments closely. Potential for escalation exists based on historical patterns in the region. Recommend enhanced monitoring of related intelligence streams.',
+    '[' + risk + '] PATEL AI assesses this situation as significant for regional stability. The incident in ' + loc.city + ' follows a pattern of similar events over the past 30 days. Cross-referencing with OSINT feeds indicates possible connection to broader geopolitical dynamics.',
+    '[' + risk + '] Analysis indicates this event could impact operations in ' + loc.country + ' and neighboring regions. Severity assessment based on multiple indicators including historical data, current geopolitical context, and source reliability scoring.'
+  ];
+  return pickRandom(summaries);
+}
+
+/* ===========================================================
+   MARKER MANAGEMENT
+   =========================================================== */
+function addMarkerToMap(event) {
+  if (!STATE.map || !STATE.markerLayer) return;
+
+  var sizeClass = 'sz-' + Math.min(event.severity, 5);
+  var dotSize = event.severity >= 5 ? 20 : event.severity >= 4 ? 17 : event.severity >= 3 ? 14 : 12;
+
+  var html = '<div class="event-marker" data-eid="' + event.id + '">' +
+    '<div class="marker-dot ' + event.category + ' ' + sizeClass + '"></div>' +
+    '</div>';
+
+  var icon = L.divIcon({
+    html: html,
+    className: 'leaflet-marker-custom',
+    iconSize: [dotSize + 12, dotSize + 12],
+    iconAnchor: [(dotSize + 12)/2, (dotSize + 12)/2]
+  });
+
+  var marker = L.marker([event.lat, event.lng], { icon: icon });
+
+  // Use a closure to capture the event id
+  (function(eid) {
+    marker.on('click', function(e) {
+      L.DomEvent.stopPropagation(e);
+      openDetail(eid);
+    });
+  })(event.id);
+
+  // Bind a simple tooltip
+  marker.bindTooltip(
+    '<strong>' + escapeHtml(event.title) + '</strong><br>' +
+    '<span style="color:#8b99b0">' + escapeHtml(event.location) + '</span>',
+    {
+      className: 'custom-tooltip',
+      direction: 'top',
+      offset: [0, -10],
+      opacity: 0.95
+    }
+  );
+
+  marker.addTo(STATE.markerLayer);
+  STATE.markers[event.id] = marker;
+}
+
+function clearAllMarkers() {
+  if (STATE.markerLayer) {
+    STATE.markerLayer.clearLayers();
+  }
+  STATE.markers = {};
+}
+
+function refreshMapMarkers() {
+  clearAllMarkers();
+  var filtered = getFilteredEvents();
+  for (var i = 0; i < filtered.length; i++) {
+    addMarkerToMap(filtered[i]);
+  }
+  var count = Object.keys(STATE.markers).length;
+  document.getElementById('marker-count').textContent = count + ' markers';
+}
+
+/* ===========================================================
+   FILTERING
+   =========================================================== */
+function getFilteredEvents() {
+  var results = [];
+  for (var i = 0; i < STATE.events.length; i++) {
+    var evt = STATE.events[i];
+    if (STATE.activeFilter !== 'all' && evt.category !== STATE.activeFilter) continue;
+    if (STATE.severityFilter > 0 && evt.severity < STATE.severityFilter) continue;
+    if (STATE.searchQuery) {
+      var q = STATE.searchQuery.toLowerCase();
+      var searchable = (evt.title + ' ' + evt.location + ' ' + evt.country + ' ' + evt.category + ' ' + evt.source).toLowerCase();
+      if (searchable.indexOf(q) === -1) continue;
+    }
+    results.push(evt);
+  }
+  return results;
+}
+
+function handleFilter(btn, filter) {
+  STATE.activeFilter = filter;
+  var btns = document.querySelectorAll('.filter-btn');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].classList.remove('active');
+  }
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  STATE.severityFilter = parseInt(document.getElementById('severity-filter').value, 10) || 0;
+  STATE.searchQuery = document.getElementById('search-input').value || '';
+  refreshFeed();
+  refreshMapMarkers();
+}
+
+/* ===========================================================
+   FEED RENDERING
+   =========================================================== */
+function renderFeedItem(event) {
+  var ago = timeAgo(event.timestamp);
+  var sevClass = event.severity >= 5 ? 'sev-5' : event.severity >= 4 ? 'sev-4' : '';
+  var critClass = event.severity >= 5 ? 'critical' : 'unread';
+  var bmActive = STATE.bookmarks[event.id] ? 'active' : '';
+  var bmIcon = STATE.bookmarks[event.id] ? 'fas' : 'far';
+
+  return '<div class="feed-item ' + critClass + '" data-id="' + event.id + '" onclick="openDetail(\'' + event.id + '\')">' +
+    '<button class="feed-item-bookmark ' + bmActive + '" onclick="event.stopPropagation();toggleBookmark(\'' + event.id + '\')">' +
+    '<i class="' + bmIcon + ' fa-bookmark"></i></button>' +
+    '<div class="feed-item-header">' +
+    '<span class="feed-item-cat ' + event.category + '">' + event.category.toUpperCase() + '</span>' +
+    '<span class="feed-item-severity ' + sevClass + '">SEV ' + event.severity + '</span>' +
+    '</div>' +
+    '<div class="feed-item-title">' + escapeHtml(event.title) + '</div>' +
+    '<div class="feed-item-meta">' +
+    '<span><i class="fas fa-map-pin"></i> ' + escapeHtml(event.location) + '</span>' +
+    '<span><i class="far fa-clock"></i> ' + ago + '</span>' +
+    '<span><i class="fas fa-rss"></i> ' + escapeHtml(event.source) + '</span>' +
+    '</div></div>';
+}
+
+function refreshFeed() {
+  var feedList = document.getElementById('feed-list');
+  var filtered = getFilteredEvents();
+  // Sort newest first
+  filtered.sort(function(a, b) { return b.timestamp.getTime() - a.timestamp.getTime(); });
+  var html = '';
+  for (var i = 0; i < filtered.length; i++) {
+    html += renderFeedItem(filtered[i]);
+  }
+  feedList.innerHTML = html;
+  document.getElementById('feed-count').textContent = filtered.length + ' events';
+}
+
+/* ===========================================================
+   DETAIL PANEL (FIXED - does NOT overlap map)
+   =========================================================== */
+function openDetail(eventId) {
+  var event = null;
+  for (var i = 0; i < STATE.events.length; i++) {
+    if (STATE.events[i].id === eventId) { event = STATE.events[i]; break; }
+  }
+  if (!event) return;
+
+  // Clear any running AI typing
+  if (STATE.aiTypingInterval) {
+    clearInterval(STATE.aiTypingInterval);
+    STATE.aiTypingInterval = null;
+  }
+
+  STATE.selectedEvent = event;
+  STATE.detailOpen = true;
+
+  var sevColors = {5:'var(--accent-red)',4:'var(--accent-amber)',3:'var(--accent-amber)',2:'var(--accent-blue)',1:'var(--accent-green)'};
+  var sevColor = sevColors[event.severity] || 'var(--text-primary)';
+
+  // Severity dots
+  var sevDots = '';
+  for (var s = 0; s < 5; s++) {
+    sevDots += s < event.severity ? '●' : '○';
+  }
+
+  // Find related events
+  var related = [];
+  for (var r = 0; r < STATE.events.length; r++) {
+    var e = STATE.events[r];
+    if (e.id !== event.id && (e.region === event.region || e.category === event.category)) {
+      related.push(e);
+      if (related.length >= 4) break;
+    }
+  }
+
+  var relatedHtml = '';
+  if (related.length > 0) {
+    relatedHtml = '<div class="detail-section">' +
+      '<div class="detail-section-title"><i class="fas fa-link"></i> RELATED EVENTS (' + related.length + ')</div>' +
+      '<div class="related-events">';
+    for (var ri = 0; ri < related.length; ri++) {
+      var rel = related[ri];
+      var dotColor = CATEGORY_COLORS[rel.category] || '#888';
+      relatedHtml += '<div class="related-item" onclick="openDetail(\'' + rel.id + '\')">' +
+        '<div class="ri-dot" style="background:' + dotColor + '"></div>' +
+        '<div class="related-item-text">' +
+        '<div class="related-item-title">' + escapeHtml(rel.title) + '</div>' +
+        '<div class="related-item-sub">' + escapeHtml(rel.location) + ' &middot; ' + timeAgo(rel.timestamp) + '</div>' +
+        '</div>' +
+        '<span class="feed-item-severity ' + (rel.severity>=4?'sev-4':'') + '">SEV ' + rel.severity + '</span>' +
+        '</div>';
+    }
+    relatedHtml += '</div></div>';
+  }
+
+  var body = document.getElementById('detail-body');
+  body.innerHTML = '<div class="detail-section">' +
+    '<span class="feed-item-cat ' + event.category + '" style="font-size:10px;display:inline-block;margin-bottom:12px;">' +
+    event.category.toUpperCase() + '</span>' +
+    '<div class="detail-event-title">' + escapeHtml(event.title) + '</div>' +
+    '<div class="detail-event-location"><i class="fas fa-map-marker-alt"></i> ' + escapeHtml(event.location) + ' &nbsp;|&nbsp; ' + escapeHtml(event.region) + '</div>' +
+    '<div class="detail-meta-grid">' +
+    '<div class="detail-meta-card"><label>Severity</label><div class="val" style="color:' + sevColor + '">' + sevDots + ' Level ' + event.severity + '</div></div>' +
+    '<div class="detail-meta-card"><label>Event ID</label><div class="val" style="font-family:var(--font-mono);font-size:13px;">' + event.id + '</div></div>' +
+    '<div class="detail-meta-card"><label>Source</label><div class="val">' + escapeHtml(event.source) + '</div></div>' +
+    '<div class="detail-meta-card"><label>Timestamp</label><div class="val" style="font-family:var(--font-mono);font-size:12px;">' + formatTime(event.timestamp) + '</div></div>' +
+    '<div class="detail-meta-card"><label>Coordinates</label><div class="val" style="font-family:var(--font-mono);font-size:12px;">' + event.lat.toFixed(3) + '&deg;, ' + event.lng.toFixed(3) + '&deg;</div></div>' +
+    '<div class="detail-meta-card"><label>Region</label><div class="val">' + escapeHtml(event.region) + '</div></div>' +
+    '</div></div>' +
+    '<div class="detail-section"><div class="detail-section-title"><i class="fas fa-file-lines"></i> SITUATION REPORT</div>' +
+    '<div class="detail-description">' + escapeHtml(event.description) + '</div></div>' +
+    '<div class="detail-section"><div class="detail-section-title"><i class="fas fa-brain"></i> AI INTELLIGENCE SUMMARY</div>' +
+    '<div class="ai-summary-box"><div class="ai-summary-header"><i class="fas fa-microchip"></i> PATEL AI Analysis</div>' +
+    '<div class="ai-summary-text" id="ai-summary-text"><span class="ai-cursor"></span></div></div></div>' +
+    relatedHtml;
+
+  // Scroll detail body to top
+  body.scrollTop = 0;
+
+  // Open the panel
+  document.getElementById('detail-overlay').classList.add('open');
+  document.getElementById('detail-panel').classList.add('open');
+
+  // Start AI typing
+  startAITyping(event.aiSummary);
+
+  // Pan map to event location (don't zoom too much)
+  try {
+    STATE.map.flyTo([event.lat, event.lng], Math.max(STATE.map.getZoom(), 5), { duration: 0.8 });
+  } catch(e) {}
+}
+
+function startAITyping(text) {
+  var el = document.getElementById('ai-summary-text');
+  if (!el) return;
+
+  var i = 0;
+  el.innerHTML = '<span class="ai-cursor"></span>';
+
+  STATE.aiTypingInterval = setInterval(function() {
+    if (i < text.length) {
+      el.innerHTML = escapeHtml(text.substring(0, i + 1)) + '<span class="ai-cursor"></span>';
+      i++;
+    } else {
+      clearInterval(STATE.aiTypingInterval);
+      STATE.aiTypingInterval = null;
+      setTimeout(function() {
+        var cursor = el.querySelector('.ai-cursor');
+        if (cursor) cursor.style.display = 'none';
+      }, 2000);
+    }
+  }, 18);
+}
+
+function closeDetail() {
+  if (STATE.aiTypingInterval) {
+    clearInterval(STATE.aiTypingInterval);
+    STATE.aiTypingInterval = null;
+  }
+  STATE.detailOpen = false;
+  STATE.selectedEvent = null;
+  document.getElementById('detail-overlay').classList.remove('open');
+  document.getElementById('detail-panel').classList.remove('open');
+}
+
+// Close detail when clicking overlay
+document.getElementById('detail-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeDetail();
+});
+
+/* ===========================================================
+   BOOKMARKS
+   =========================================================== */
+function toggleBookmark(eventId) {
+  if (STATE.bookmarks[eventId]) {
+    delete STATE.bookmarks[eventId];
+  } else {
+    STATE.bookmarks[eventId] = true;
+  }
+  refreshFeed();
+}
+
+function bookmarkCurrent() {
+  if (STATE.selectedEvent) {
+    toggleBookmark(STATE.selectedEvent.id);
+    var isBookmarked = !!STATE.bookmarks[STATE.selectedEvent.id];
+    showToast({
+      title: isBookmarked ? 'Event Bookmarked' : 'Bookmark Removed',
+      msg: STATE.selectedEvent.title,
+      category: STATE.selectedEvent.category
+    });
+  }
+}
+
+function shareCurrent() {
+  if (STATE.selectedEvent) {
+    var text = '[PATEL INTEL] ' + STATE.selectedEvent.title + ' — ' + STATE.selectedEvent.location + ' (SEV ' + STATE.selectedEvent.severity + ')';
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text);
+      }
+    } catch(e) {}
+    showToast({ title:'Copied to clipboard', msg: text, category:'breaking' });
+  }
+}
+
+/* ===========================================================
+   TOAST NOTIFICATIONS
+   =========================================================== */
+function showToast(opts) {
+  var container = document.getElementById('toast-container');
+  var toast = document.createElement('div');
+  toast.className = 'toast';
+  var iconClass = CATEGORY_ICONS[opts.category] || 'fa-bell';
+
+  toast.innerHTML = '<div class="toast-icon ' + (opts.category || '') + '"><i class="fas ' + iconClass + '"></i></div>' +
+    '<div class="toast-content">' +
+    '<div class="toast-title">' + escapeHtml(opts.title) + '</div>' +
+    '<div class="toast-msg">' + escapeHtml(opts.msg) + '</div>' +
+    '<div class="toast-time">' + new Date().toISOString().replace('T',' ').substring(0,19) + ' UTC</div>' +
+    '</div>' +
+    '<button class="toast-close-btn"><i class="fas fa-times"></i></button>';
+
+  // Close button handler
+  var closeBtn = toast.querySelector('.toast-close-btn');
+  closeBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    dismissToast(toast);
+  });
+
+  container.insertBefore(toast, container.firstChild);
+
+  // Auto dismiss
+  var timer = setTimeout(function() {
+    dismissToast(toast);
+  }, CONFIG.TOAST_DURATION);
+
+  toast._timer = timer;
+
+  // Limit to 4 toasts
+  while (container.children.length > 4) {
+    var last = container.lastChild;
+    if (last._timer) clearTimeout(last._timer);
+    container.removeChild(last);
+  }
+}
+
+function dismissToast(toast) {
+  if (!toast || !toast.parentElement) return;
+  toast.classList.add('removing');
+  setTimeout(function() {
+    if (toast.parentElement) toast.parentElement.removeChild(toast);
+  }, 300);
+}
+
+/* ===========================================================
+   STATS & SPARKLINES
+   =========================================================== */
+function updateStats() {
+  var counts = {conflict:0, breaking:0, weather:0, economic:0, cyber:0, health:0};
+  var countries = {};
+  var critical = 0;
+
+  for (var i = 0; i < STATE.events.length; i++) {
+    var e = STATE.events[i];
+    counts[e.category] = (counts[e.category] || 0) + 1;
+    countries[e.country] = true;
+    if (e.severity >= 5) critical++;
+  }
+
+  var countryCount = Object.keys(countries).length;
+
+  document.getElementById('stat-total').textContent = STATE.events.length;
+  document.getElementById('stat-countries').textContent = countryCount;
+  document.getElementById('stat-critical').textContent = critical;
+
+  document.getElementById('count-all').textContent = STATE.events.length;
+  document.getElementById('count-conflict').textContent = counts.conflict;
+  document.getElementById('count-breaking').textContent = counts.breaking;
+  document.getElementById('count-weather').textContent = counts.weather;
+  document.getElementById('count-economic').textContent = counts.economic;
+  document.getElementById('count-cyber').textContent = counts.cyber;
+
+  document.getElementById('sbar-conflict').textContent = counts.conflict;
+  document.getElementById('sbar-breaking').textContent = counts.breaking;
+  document.getElementById('sbar-weather').textContent = counts.weather;
+  document.getElementById('sbar-economic').textContent = counts.economic;
+  document.getElementById('sbar-cyber').textContent = counts.cyber;
+
+  var sparkCats = ['conflict','breaking','weather','economic','cyber'];
+  for (var sc = 0; sc < sparkCats.length; sc++) {
+    var cat = sparkCats[sc];
+    STATE.sparkData[cat].push(counts[cat]);
+    if (STATE.sparkData[cat].length > CONFIG.SPARKLINE_POINTS) {
+      STATE.sparkData[cat].shift();
+    }
+    drawSparkline('spark-' + cat, STATE.sparkData[cat], CATEGORY_COLORS[cat]);
+  }
+
+  updateActivityBars();
+  updateThreatLevel(critical, STATE.events.length);
+}
+
+function drawSparkline(canvasId, data, color) {
+  var canvas = document.getElementById(canvasId);
+  if (!canvas || data.length < 2) return;
+
+  var ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  var w = canvas.width;
+  var h = canvas.height;
+  var pad = 2;
+
+  ctx.clearRect(0, 0, w, h);
+
+  var max = 1;
+  for (var m = 0; m < data.length; m++) {
+    if (data[m] > max) max = data[m];
+  }
+  var range = max;
+  var step = (w - pad * 2) / (data.length - 1);
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  for (var i = 0; i < data.length; i++) {
+    var x = pad + i * step;
+    var y = h - pad - (data[i] / range) * (h - pad * 2);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Fill area
+  var lastX = pad + (data.length - 1) * step;
+  var lastY = h - pad - (data[data.length - 1] / range) * (h - pad * 2);
+  ctx.lineTo(lastX, h);
+  ctx.lineTo(pad, h);
+  ctx.closePath();
+
+  var gradient = ctx.createLinearGradient(0, 0, 0, h);
+  gradient.addColorStop(0, color + '33');
+  gradient.addColorStop(1, color + '00');
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  // End dot
+  ctx.beginPath();
+  ctx.arc(lastX, lastY, 2, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function updateActivityBars() {
+  var container = document.getElementById('activity-bars');
+  if (container.children.length === 0) {
+    for (var i = 0; i < 12; i++) {
+      var span = document.createElement('span');
+      span.style.height = '3px';
+      container.appendChild(span);
+    }
+  }
+  var bars = container.children;
+  for (var b = 0; b < bars.length; b++) {
+    bars[b].style.height = (3 + Math.random() * 17) + 'px';
+  }
+}
+
+function updateThreatLevel(critical, total) {
+  var el = document.getElementById('threat-level');
+  var textEl = document.getElementById('threat-text');
+  var dot = el.querySelector('.tl-dot');
+  var ratio = total > 0 ? critical / total : 0;
+
+  if (ratio > 0.15 || critical > 8) {
+    textEl.textContent = 'SEVERE';
+    el.style.borderColor = 'rgba(255,45,85,0.3)';
+    el.style.background = 'rgba(255,45,85,0.08)';
+    el.style.color = 'var(--accent-red)';
+    dot.style.background = 'var(--accent-red)';
+  } else if (ratio > 0.08 || critical > 4) {
+    textEl.textContent = 'HIGH';
+    el.style.borderColor = 'rgba(255,107,53,0.3)';
+    el.style.background = 'rgba(255,107,53,0.08)';
+    el.style.color = 'var(--accent-orange)';
+    dot.style.background = 'var(--accent-orange)';
+  } else {
+    textEl.textContent = 'ELEVATED';
+    el.style.borderColor = 'rgba(255,180,0,0.3)';
+    el.style.background = 'rgba(255,180,0,0.08)';
+    el.style.color = 'var(--accent-amber)';
+    dot.style.background = 'var(--accent-amber)';
+  }
+}
+
+/* ===========================================================
+   CLOCK
+   =========================================================== */
+function updateClock() {
+  var now = new Date();
+  var h = now.getUTCHours();
+  var m = now.getUTCMinutes();
+  var s = now.getUTCSeconds();
+  h = h < 10 ? '0' + h : '' + h;
+  m = m < 10 ? '0' + m : '' + m;
+  s = s < 10 ? '0' + s : '' + s;
+  document.getElementById('clock-time').textContent = h + ':' + m + ':' + s;
+}
+
+/* ===========================================================
+   MOBILE FEED
+   =========================================================== */
+function openMobileFeed() {
+  document.getElementById('feed-panel').classList.add('mobile-open');
+}
+function closeMobileFeed() {
+  document.getElementById('feed-panel').classList.remove('mobile-open');
+}
+
+/* ===========================================================
+   REAL-TIME UPDATE ENGINE
+   =========================================================== */
+function addNewEvent() {
+  var event = generateEvent();
+  STATE.events.unshift(event);
+
+  // Cap events
+  while (STATE.events.length > CONFIG.MAX_EVENTS) {
+    var removed = STATE.events.pop();
+    if (STATE.markers[removed.id]) {
+      STATE.markerLayer.removeLayer(STATE.markers[removed.id]);
+      delete STATE.markers[removed.id];
+    }
+  }
+
+  refreshFeed();
+  refreshMapMarkers();
+  updateStats();
+
+  // Toast for high severity
+  if (event.severity >= 4) {
+    showToast({
+      title: event.category.toUpperCase() + ' ALERT — SEV ' + event.severity,
+      msg: event.title,
+      category: event.category
+    });
+  }
+}
+
+function startRealTimeUpdates() {
+  setInterval(function() {
+    addNewEvent();
+  }, CONFIG.UPDATE_INTERVAL);
+
+  // Refresh timestamps
+  setInterval(function() {
+    refreshFeed();
+  }, 30000);
+
+  // Clock
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Activity bar animation
+  setInterval(updateActivityBars, 2000);
+}
+
+/* ===========================================================
+   TOOLTIP STYLE INJECTION
+   =========================================================== */
+function injectTooltipStyles() {
+  var style = document.createElement('style');
+  style.textContent = '.custom-tooltip{background:rgba(12,18,32,0.95)!important;' +
+    'border:1px solid rgba(255,255,255,0.1)!important;border-radius:8px!important;' +
+    'color:#e8edf5!important;font-family:"Inter",sans-serif!important;font-size:11px!important;' +
+    'padding:8px 12px!important;box-shadow:0 8px 32px rgba(0,0,0,0.5)!important;' +
+    'max-width:280px!important;line-height:1.4!important;}' +
+    '.custom-tooltip .leaflet-tooltip-arrow{display:none!important;}' +
+    '.leaflet-marker-custom{background:none!important;border:none!important;}';
+  document.head.appendChild(style);
+}
+
+/* ===========================================================
+   APPLICATION INIT
+   =========================================================== */
+function initApp() {
+  injectTooltipStyles();
+  initMap();
+
+  // Generate initial events with staggered timestamps
+  for (var i = 0; i < 35; i++) {
+    var event = generateEvent();
+    event.timestamp = new Date(Date.now() - Math.random() * 3600000 * 4);
+    STATE.events.push(event);
+  }
+
+  // Sort newest first
+  STATE.events.sort(function(a, b) { return b.timestamp.getTime() - a.timestamp.getTime(); });
+
+  // Initial render
+  refreshFeed();
+  refreshMapMarkers();
+  updateStats();
+
+  // Start real-time engine
+  startRealTimeUpdates();
+
+  // Keyboard shortcut: Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' || e.keyCode === 27) {
+      if (STATE.detailOpen) closeDetail();
+    }
+  });
+
+  // Handle window resize for map
+  window.addEventListener('resize', function() {
+    if (STATE.map) {
+      setTimeout(function() { STATE.map.invalidateSize(); }, 150);
+    }
+  });
+
+  console.log('%c[PATEL] System initialized successfully', 'color:#00d4ff;font-weight:bold;font-size:14px');
+}
+
+/* ===========================================================
+   START
+   =========================================================== */
+window.addEventListener('DOMContentLoaded', runBootSequence);
+
+// Fallback: if DOMContentLoaded already fired
+if (document.readyState !== 'loading') {
+  runBootSequence();
+}
+</script>
+</body>
+</html>
